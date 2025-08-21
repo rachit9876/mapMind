@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mind Map Designer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            overflow: hidden; /* Prevent scrolling */
+        }
+
+        /* Custom dotted background for the canvas */
+        .dot-background {
+            background-image: radial-gradient(#d3d3d3 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        /* Styles for the custom context menu */
+        #context-menu {
+            position: absolute;
+            z-index: 1000;
+            display: none;
+            background-color: #fff;
+            border-radius: 0.75rem; /* rounded-xl */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-xl */
+            padding: 0.5rem;
+            min-width: 150px;
+        }
+
+        #context-menu ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        #context-menu li {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            color: #4a5568; /* text-gray-700 */
+            transition: background-color 0.2s;
+            border-radius: 0.5rem; /* rounded-lg */
+        }
+
+        #context-menu li:hover {
+            background-color: #f7fafc; /* bg-gray-50 */
+        }
+
+        #context-menu li.disabled {
+            color: #cbd5e0; /* text-gray-400 */
+            cursor: not-allowed;
+        }
+
+        /* In-line text input for renaming */
+        #inline-rename-input {
+            position: absolute;
+            z-index: 500;
+            display: none;
+            background: #fff;
+            border: 2px solid #4c51bf; /* indigo-600 */
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+            text-align: center;
+            font: 16px 'Inter', sans-serif;
+            color: #1f2937;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex flex-col h-screen">
+
+    <!-- Top Header -->
+    <header class="bg-white p-4 shadow-md flex justify-between items-center z-10">
+        <h1 class="text-2xl font-bold text-gray-800">Mind Map Designer</h1>
+        <div class="flex items-center space-x-4">
+            <label for="curvedLinesToggle" class="flex items-center cursor-pointer">
+                <span class="text-gray-700 mr-2">Use Curved Lines</span>
+                <input type="checkbox" id="curvedLinesToggle" class="sr-only peer" checked>
+                <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+            </label>
+            <button id="createNodeBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-colors duration-200">
+                Create Node
+            </button>
+        </div>
+    </header>
+
+    <!-- Canvas Container -->
+    <main class="flex-1 dot-background">
+        <canvas id="mindMapCanvas" class="w-full h-full"></canvas>
+    </main>
+    
+    <!-- Inline text input for renaming -->
+    <input type="text" id="inline-rename-input">
+
+    <!-- Custom Right-Click Menu -->
+    <div id="context-menu" class="hidden">
+        <ul>
+            <li id="menu-create">Create New Node</li>
+            <li id="menu-add-branch" class="disabled">Add Branch</li>
+            <li id="menu-rename" class="disabled">Rename Node</li>
+            <li id="menu-delete" class="disabled">Delete Element</li>
+        </ul>
+    </div>
+
+    <script>
+        window.onload = function() {
+            // Get references to all DOM elements
+            const canvas = document.getElementById('mindMapCanvas');
+            const ctx = canvas.getContext('2d');
+            const createNodeBtn = document.getElementById('createNodeBtn');
+            const curvedLinesToggle = document.getElementById('curvedLinesToggle');
+            const contextMenu = document.getElementById('context-menu');
+            const menuCreateBtn = document.getElementById('menu-create');
+            const menuAddBranchBtn = document.getElementById('menu-add-branch');
+            const menuRenameBtn = document.getElementById('menu-rename');
+            const menuDeleteBtn = document.getElementById('menu-delete');
+            const inlineRenameInput = document.getElementById('inline-rename-input');
+
+            // --- State Management ---
+            let nodes = [];
+            let selectedNodeId = null;
+            let draggedNodeId = null;
+            let lastMouseX, lastMouseY;
+            let nextNodeId = 1;
+
+            // --- Canvas and Drawing Logic ---
+
+            // Function to resize canvas to fill the window
+            function resizeCanvas() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight - document.querySelector('header').offsetHeight;
+                draw();
+            }
+
+            // Function to draw the entire mind map
+            function draw() {
+                // Clear the canvas
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // Draw branches (lines) first
+                for (const node of nodes) {
+                    if (node.parent !== null) {
+                        const parentNode = nodes.find(n => n.id === node.parent);
+                        if (parentNode) {
+                            // Calculate the start and end points at the center of the nodes
+                            const startX = parentNode.x + parentNode.width / 2;
+                            const startY = parentNode.y + parentNode.height / 2;
+                            const endX = node.x + node.width / 2;
+                            const endY = node.y + node.height / 2;
+
+                            ctx.beginPath();
+                            ctx.moveTo(startX, startY);
+
+                            if (curvedLinesToggle.checked) {
+                                // Calculate a dynamic control offset for a smoother S-curve
+                                // Increased the multiplier from 0.3 to 0.6 for a more pronounced curve.
+                                const dx = endX - startX;
+                                const dy = endY - startY;
+                                const controlOffset = Math.min(Math.abs(dx), Math.abs(dy)) * 0.6;
+
+                                // Draw a gentle S-curve using a cubic Bézier curve
+                                // The control points create a smooth "bend" in the line.
+                                ctx.bezierCurveTo(
+                                    startX + controlOffset, startY,
+                                    endX - controlOffset, endY,
+                                    endX, endY
+                                );
+                            } else {
+                                // Draw a straight line
+                                ctx.lineTo(endX, endY);
+                            }
+
+                            ctx.lineWidth = 2;
+                            ctx.strokeStyle = '#374151'; // gray-700
+                            ctx.stroke();
+                        }
+                    }
+                }
+
+                // Draw nodes
+                for (const node of nodes) {
+                    // Node styles
+                    const isSelected = (node.id === selectedNodeId);
+                    const isDragged = (node.id === draggedNodeId);
+                    ctx.fillStyle = '#cbd5e0'; // gray-300
+                    ctx.strokeStyle = isSelected ? '#4c51bf' : (isDragged ? '#a3a6ff' : '#6b7280'); // indigo-600 or indigo-300
+                    ctx.lineWidth = isSelected ? 4 : (isDragged ? 3 : 2);
+                    
+                    // Draw node rectangle
+                    const padding = 15;
+                    // Measure text to determine node width
+                    const textWidth = ctx.measureText(node.text).width;
+                    const rectWidth = textWidth + padding * 2;
+                    const rectHeight = 40;
+                    
+                    // Draw a rounded rectangle for the node
+                    ctx.beginPath();
+                    const radius = 10;
+                    ctx.moveTo(node.x + radius, node.y);
+                    ctx.lineTo(node.x + rectWidth - radius, node.y);
+                    ctx.arc(node.x + rectWidth - radius, node.y + radius, radius, Math.PI * 1.5, Math.PI * 2);
+                    ctx.lineTo(node.x + rectWidth, node.y + rectHeight - radius);
+                    ctx.arc(node.x + rectWidth - radius, node.y + rectHeight - radius, radius, 0, Math.PI * 0.5);
+                    ctx.lineTo(node.x + radius, node.y + rectHeight);
+                    ctx.arc(node.x + radius, node.y + rectHeight - radius, radius, Math.PI * 0.5, Math.PI);
+                    ctx.lineTo(node.x, node.y + radius);
+                    ctx.arc(node.x + radius, node.y + radius, radius, Math.PI, Math.PI * 1.5);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+                    
+                    // Draw text inside the node
+                    ctx.fillStyle = '#1f2937'; // gray-900
+                    ctx.font = '16px "Inter", sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(node.text, node.x + rectWidth / 2, node.y + rectHeight / 2);
+                    
+                    // Update node dimensions for hit testing
+                    node.width = rectWidth;
+                    node.height = rectHeight;
+                }
+            }
+
+            // Hit test to see if a click is inside a node
+            function isInsideNode(x, y) {
+                for (const node of nodes) {
+                    // Hit test logic to check if a point (x, y) is inside the node's bounds
+                    if (x > node.x && x < node.x + node.width &&
+                        y > node.y && y < node.y + node.height) {
+                        return node.id;
+                    }
+                }
+                return null;
+            }
+
+            // --- Node Operations ---
+
+            // Creates a new node and adds it to the mind map
+            function createNode(x, y, text = 'New Node', parentId = null) {
+                const newNode = {
+                    id: nextNodeId++,
+                    text: text,
+                    x: x,
+                    y: y,
+                    parent: parentId,
+                    children: []
+                };
+                nodes.push(newNode);
+
+                if (parentId !== null) {
+                    const parentNode = nodes.find(n => n.id === parentId);
+                    if (parentNode) {
+                        parentNode.children.push(newNode.id);
+                    }
+                }
+                draw();
+            }
+
+            // Deletes a node and all its children
+            function deleteNode(nodeId) {
+                const nodeToDelete = nodes.find(n => n.id === nodeId);
+                if (!nodeToDelete) return;
+
+                const nodesToDelete = [nodeId];
+                let queue = [...nodeToDelete.children];
+
+                while (queue.length > 0) {
+                    const childId = queue.shift();
+                    nodesToDelete.push(childId);
+                    const childNode = nodes.find(n => n.id === childId);
+                    if (childNode) {
+                        queue = queue.concat(childNode.children);
+                    }
+                }
+
+                // Filter out all nodes to be deleted
+                nodes = nodes.filter(n => !nodesToDelete.includes(n.id));
+
+                // Remove from parent's children array
+                if (nodeToDelete.parent !== null) {
+                    const parentNode = nodes.find(n => n.id === nodeToDelete.parent);
+                    if (parentNode) {
+                        parentNode.children = parentNode.children.filter(childId => childId !== nodeId);
+                    }
+                }
+
+                draw();
+            }
+
+            // Renames a node
+            function renameNode(nodeId, newText) {
+                const node = nodes.find(n => n.id === nodeId);
+                if (node) {
+                    node.text = newText;
+                    draw();
+                }
+            }
+            
+            // --- Event Listeners ---
+            
+            // Initialize the canvas size
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            
+            // Create initial node when the button is clicked
+            createNodeBtn.addEventListener('click', () => {
+                // Place the first node in the center of the canvas
+                if (nodes.length === 0) {
+                    createNode(canvas.width / 2 - 50, canvas.height / 2 - 20, "Main Idea");
+                } else {
+                    // For subsequent nodes, create them near the top-left
+                    createNode(50, 50);
+                }
+            });
+
+            // Handle mouse down event on canvas for dragging
+            canvas.addEventListener('mousedown', (e) => {
+                const mouseX = e.clientX;
+                const mouseY = e.clientY - document.querySelector('header').offsetHeight;
+                draggedNodeId = isInsideNode(mouseX, mouseY);
+                lastMouseX = mouseX;
+                lastMouseY = mouseY;
+                contextMenu.style.display = 'none'; // Hide menu on drag start
+                inlineRenameInput.style.display = 'none'; // Hide input on drag start
+            });
+
+            // Handle mouse move event for dragging
+            canvas.addEventListener('mousemove', (e) => {
+                if (draggedNodeId !== null) {
+                    const mouseX = e.clientX;
+                    const mouseY = e.clientY - document.querySelector('header').offsetHeight;
+                    const nodeToDrag = nodes.find(n => n.id === draggedNodeId);
+                    
+                    if (nodeToDrag) {
+                        // Move the node by the mouse movement delta
+                        nodeToDrag.x += mouseX - lastMouseX;
+                        nodeToDrag.y += mouseY - lastMouseY;
+                        lastMouseX = mouseX;
+                        lastMouseY = mouseY;
+                        draw();
+                    }
+                }
+            });
+
+            // Handle mouse up event to stop dragging
+            canvas.addEventListener('mouseup', () => {
+                draggedNodeId = null;
+            });
+            
+            // Handle double-click for inline renaming
+            canvas.addEventListener('dblclick', (e) => {
+                const mouseX = e.clientX;
+                const mouseY = e.clientY - document.querySelector('header').offsetHeight;
+                const nodeId = isInsideNode(mouseX, mouseY);
+                if (nodeId !== null) {
+                    const nodeToRename = nodes.find(n => n.id === nodeId);
+                    if (nodeToRename) {
+                        selectedNodeId = nodeId;
+                        inlineRenameInput.value = nodeToRename.text;
+                        inlineRenameInput.style.display = 'block';
+                        // Position the input field at the node's location
+                        inlineRenameInput.style.left = `${nodeToRename.x + canvas.offsetLeft}px`;
+                        inlineRenameInput.style.top = `${nodeToRename.y + canvas.offsetTop}px`;
+                        // Set initial width based on text
+                        ctx.font = '16px "Inter", sans-serif';
+                        const textWidth = ctx.measureText(nodeToRename.text).width;
+                        inlineRenameInput.style.width = `${textWidth + 30}px`; // Add padding
+                        inlineRenameInput.focus();
+                        inlineRenameInput.select();
+                    }
+                }
+            });
+
+            // Handle right-click context menu
+            canvas.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                const mouseX = e.clientX;
+                const mouseY = e.clientY - document.querySelector('header').offsetHeight;
+
+                selectedNodeId = isInsideNode(mouseX, mouseY);
+
+                // Position the menu
+                contextMenu.style.top = `${e.clientY}px`;
+                contextMenu.style.left = `${e.clientX}px`;
+                contextMenu.style.display = 'block';
+
+                // Enable/disable menu options based on selection
+                if (selectedNodeId !== null) {
+                    menuAddBranchBtn.classList.remove('disabled');
+                    menuRenameBtn.classList.remove('disabled');
+                    menuDeleteBtn.classList.remove('disabled');
+                } else {
+                    menuAddBranchBtn.classList.add('disabled');
+                    menuRenameBtn.classList.add('disabled');
+                    menuDeleteBtn.classList.add('disabled');
+                }
+            });
+
+            // Hide the menu on any other click
+            window.addEventListener('click', (e) => {
+                if (!contextMenu.contains(e.target) && !canvas.contains(e.target) && e.target !== inlineRenameInput && e.target !== curvedLinesToggle) {
+                    contextMenu.style.display = 'none';
+                    if (inlineRenameInput.style.display === 'block') {
+                         inlineRenameInput.style.display = 'none';
+                         renameNode(selectedNodeId, inlineRenameInput.value.trim());
+                    }
+                }
+            });
+
+            // --- Inline Renaming Actions ---
+
+            // Dynamically resize the input field as text is typed
+            inlineRenameInput.addEventListener('input', () => {
+                ctx.font = '16px "Inter", sans-serif'; // Must match canvas font for accurate measurement
+                const newWidth = ctx.measureText(inlineRenameInput.value).width;
+                inlineRenameInput.style.width = `${newWidth + 30}px`; // Add padding
+            });
+
+            // Save on blur (clicking outside the input)
+            inlineRenameInput.addEventListener('blur', () => {
+                renameNode(selectedNodeId, inlineRenameInput.value.trim());
+                inlineRenameInput.style.display = 'none';
+            });
+            
+            // Save on 'Enter' key press
+            inlineRenameInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    inlineRenameInput.blur();
+                }
+            });
+            
+            // Toggle for curved/straight lines
+            curvedLinesToggle.addEventListener('change', () => {
+                draw();
+            });
+
+            // --- Context Menu Actions ---
+
+            menuCreateBtn.addEventListener('click', () => {
+                if (contextMenu.style.display === 'block') {
+                    const menuX = parseInt(contextMenu.style.left);
+                    const menuY = parseInt(contextMenu.style.top) - document.querySelector('header').offsetHeight;
+                    createNode(menuX, menuY);
+                    contextMenu.style.display = 'none';
+                }
+            });
+
+            menuAddBranchBtn.addEventListener('click', () => {
+                if (selectedNodeId !== null && contextMenu.style.display === 'block') {
+                    const selectedNode = nodes.find(n => n.id === selectedNodeId);
+                    if (selectedNode) {
+                        createNode(selectedNode.x + 150, selectedNode.y, 'New Branch', selectedNode.id);
+                    }
+                    contextMenu.style.display = 'none';
+                }
+            });
+
+            menuDeleteBtn.addEventListener('click', () => {
+                if (selectedNodeId !== null && contextMenu.style.display === 'block') {
+                    deleteNode(selectedNodeId);
+                    selectedNodeId = null;
+                    contextMenu.style.display = 'none';
+                }
+            });
+
+            menuRenameBtn.addEventListener('click', () => {
+                if (selectedNodeId !== null && contextMenu.style.display === 'block') {
+                    const nodeToRename = nodes.find(n => n.id === selectedNodeId);
+                    if (nodeToRename) {
+                        inlineRenameInput.value = nodeToRename.text;
+                        inlineRenameInput.style.display = 'block';
+                        inlineRenameInput.style.left = `${nodeToRename.x + canvas.offsetLeft}px`;
+                        inlineRenameInput.style.top = `${nodeToRename.y + canvas.offsetTop}px`;
+                        ctx.font = '16px "Inter", sans-serif';
+                        const textWidth = ctx.measureText(nodeToRename.text).width;
+                        inlineRenameInput.style.width = `${textWidth + 30}px`;
+                        inlineRenameInput.focus();
+                        inlineRenameInput.select();
+                    }
+                    contextMenu.style.display = 'none';
+                }
+            });
+        };
+    </script>
+</body>
+</html>
