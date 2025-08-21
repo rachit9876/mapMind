@@ -18,8 +18,8 @@
 
         /* Design tokens via CSS variables (light/dark) */
         :root {
-            --bg: #f6f7fb;
-            --dot: rgba(17, 24, 39, 0.08); /* gray-900 @ 8% */
+            --bg: #f3f4f6;
+            --dot: rgba(0, 0, 0, 0.3); /* black @ 30% */
             --line: #9ca3af; /* gray-400 */
             --node-fill: #ffffff;
             --node-border: #e5e7eb; /* gray-200 */
@@ -32,7 +32,7 @@
 
         html.dark {
             --bg: #0b1220;
-            --dot: rgba(255, 255, 255, 0.12);
+            --dot: rgba(255, 255, 255, 0.2);
             --line: #4b5563; /* gray-600 */
             --node-fill: #0f172a; /* slate-900 */
             --node-border: #1f2937; /* gray-800 */
@@ -46,8 +46,8 @@
         /* Custom dotted background for the canvas */
         .dot-background {
             background-color: var(--bg);
-            background-image: radial-gradient(var(--dot) 1px, transparent 1px);
-            background-size: 20px 20px;
+            background-image: radial-gradient(var(--dot) 2px, transparent 2px);
+            background-size: 100px 100px;
         }
 
         #mindMapCanvas {
