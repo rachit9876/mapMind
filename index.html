@@ -16,8 +16,17 @@
 
         /* Custom dotted background for the canvas */
         .dot-background {
-            background-image: radial-gradient(#d3d3d3 1px, transparent 1px);
+            background-color: #f5f5f5;
+            background-image: radial-gradient(#000000 1px, transparent 1px);
             background-size: 20px 20px;
+        }
+
+        #mindMapCanvas {
+            cursor: grab;
+        }
+
+        #mindMapCanvas:active {
+            cursor: grabbing;
         }
 
         /* Styles for the custom context menu */
@@ -82,6 +91,9 @@
                 <input type="checkbox" id="curvedLinesToggle" class="sr-only peer" checked>
                 <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
             </label>
+            <button id="resetPositionBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-colors duration-200">
+                Reset Position
+            </button>
             <button id="createNodeBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-colors duration-200">
                 Create Node
             </button>
@@ -112,6 +124,7 @@
             const canvas = document.getElementById('mindMapCanvas');
             const ctx = canvas.getContext('2d');
             const createNodeBtn = document.getElementById('createNodeBtn');
+            const resetPositionBtn = document.getElementById('resetPositionBtn');
             const curvedLinesToggle = document.getElementById('curvedLinesToggle');
             const contextMenu = document.getElementById('context-menu');
             const menuCreateBtn = document.getElementById('menu-create');
@@ -126,6 +139,11 @@
             let draggedNodeId = null;
             let lastMouseX, lastMouseY;
             let nextNodeId = 1;
+            let zoomScale = 1;
+            let panX = 0, panY = 0;
+            let editingNodeId = null;
+            let textSelected = false;
+            let multiSelectedNodes = [];
 
             // --- Canvas and Drawing Logic ---
 
@@ -140,6 +158,16 @@
             function draw() {
                 // Clear the canvas
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Update background dot size based on zoom
+                const dotSize = 20 * zoomScale;
+                canvas.parentElement.style.backgroundSize = `${dotSize}px ${dotSize}px`;
+                canvas.parentElement.style.backgroundPosition = `${panX % dotSize}px ${panY % dotSize}px`;
+                
+                // Apply zoom and pan transformation
+                ctx.save();
+                ctx.translate(panX, panY);
+                ctx.scale(zoomScale, zoomScale);
 
                 // Draw branches (lines) first
                 for (const node of nodes) {
@@ -185,10 +213,11 @@
                 for (const node of nodes) {
                     // Node styles
                     const isSelected = (node.id === selectedNodeId);
+                    const isMultiSelected = multiSelectedNodes.includes(node.id);
                     const isDragged = (node.id === draggedNodeId);
                     ctx.fillStyle = '#cbd5e0'; // gray-300
-                    ctx.strokeStyle = isSelected ? '#4c51bf' : (isDragged ? '#a3a6ff' : '#6b7280'); // indigo-600 or indigo-300
-                    ctx.lineWidth = isSelected ? 4 : (isDragged ? 3 : 2);
+                    ctx.strokeStyle = isSelected ? '#4c51bf' : (isMultiSelected ? '#10b981' : (isDragged ? '#a3a6ff' : '#6b7280')); // indigo-600, green-500, or indigo-300
+                    ctx.lineWidth = isSelected ? 4 : (isMultiSelected ? 3 : (isDragged ? 3 : 2));
                     
                     // Draw node rectangle
                     const padding = 15;
@@ -218,37 +247,87 @@
                     ctx.font = '16px "Inter", sans-serif';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
-                    ctx.fillText(node.text, node.x + rectWidth / 2, node.y + rectHeight / 2);
+                    
+                    // Show cursor for editing node
+                    if (node.id === editingNodeId) {
+                        if (textSelected) {
+                            // Draw pink selection background
+                            ctx.fillStyle = '#ffc0cb'; // pink
+                            ctx.fillRect(node.x + 5, node.y + 5, rectWidth - 10, rectHeight - 10);
+                            ctx.fillStyle = '#1f2937'; // reset text color
+                        }
+                        const displayText = node.text + (textSelected ? '' : '|');
+                        ctx.fillText(displayText, node.x + rectWidth / 2, node.y + rectHeight / 2);
+                    } else {
+                        ctx.fillText(node.text, node.x + rectWidth / 2, node.y + rectHeight / 2);
+                    }
                     
                     // Update node dimensions for hit testing
                     node.width = rectWidth;
                     node.height = rectHeight;
                 }
+                
+                // Restore transformation
+                ctx.restore();
             }
 
             // Hit test to see if a click is inside a node
             function isInsideNode(x, y) {
+                // Adjust coordinates for zoom and pan
+                const adjustedX = (x - panX) / zoomScale;
+                const adjustedY = (y - panY) / zoomScale;
+                
                 for (const node of nodes) {
                     // Hit test logic to check if a point (x, y) is inside the node's bounds
-                    if (x > node.x && x < node.x + node.width &&
-                        y > node.y && y < node.y + node.height) {
+                    if (adjustedX > node.x && adjustedX < node.x + node.width &&
+                        adjustedY > node.y && adjustedY < node.y + node.height) {
                         return node.id;
                     }
                 }
                 return null;
             }
 
+            // Clean up connection inconsistencies
+            function cleanupConnections() {
+                // Remove duplicate children and fix parent-child mismatches
+                for (const node of nodes) {
+                    // Remove duplicate children
+                    node.children = [...new Set(node.children)];
+                    
+                    // Ensure all children have this node as parent
+                    node.children = node.children.filter(childId => {
+                        const child = nodes.find(n => n.id === childId);
+                        return child && child.parent === node.id;
+                    });
+                    
+                    // If node has a parent, ensure parent has this node as child
+                    if (node.parent !== null) {
+                        const parent = nodes.find(n => n.id === node.parent);
+                        if (parent && !parent.children.includes(node.id)) {
+                            parent.children.push(node.id);
+                        }
+                    }
+                }
+            }
+
             // --- Node Operations ---
 
             // Creates a new node and adds it to the mind map
             function createNode(x, y, text = 'New Node', parentId = null) {
+                // Calculate initial dimensions
+                ctx.font = '16px "Inter", sans-serif';
+                const textWidth = ctx.measureText(text).width;
+                const padding = 15;
+                
                 const newNode = {
                     id: nextNodeId++,
                     text: text,
                     x: x,
                     y: y,
                     parent: parentId,
-                    children: []
+                    children: [],
+                    width: textWidth + padding * 2,
+                    height: 40
                 };
                 nodes.push(newNode);
 
@@ -303,10 +382,25 @@
             
             // --- Event Listeners ---
             
+            // Disable right-click context menu globally
+            document.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+            });
+            
             // Initialize the canvas size
             resizeCanvas();
             window.addEventListener('resize', resizeCanvas);
             
+            // Reset position to focus on first node
+            resetPositionBtn.addEventListener('click', () => {
+                if (nodes.length > 0) {
+                    const firstNode = nodes[0];
+                    panX = canvas.width / 2 - (firstNode.x + firstNode.width / 2) * zoomScale;
+                    panY = canvas.height / 2 - (firstNode.y + firstNode.height / 2) * zoomScale;
+                    draw();
+                }
+            });
+
             // Create initial node when the button is clicked
             createNodeBtn.addEventListener('click', () => {
                 // Place the first node in the center of the canvas
@@ -318,38 +412,107 @@
                 }
             });
 
+            // Handle scroll wheel for zooming
+            canvas.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+                
+                const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+                const newZoom = Math.max(0.1, Math.min(3, zoomScale * zoomFactor));
+                
+                // Adjust pan to zoom towards mouse position
+                panX = mouseX - (mouseX - panX) * (newZoom / zoomScale);
+                panY = mouseY - (mouseY - panY) * (newZoom / zoomScale);
+                
+                zoomScale = newZoom;
+                draw();
+            });
+
             // Handle mouse down event on canvas for dragging
             canvas.addEventListener('mousedown', (e) => {
+                // Only allow left-click dragging
+                if (e.button !== 0) return;
+                
                 const mouseX = e.clientX;
                 const mouseY = e.clientY - document.querySelector('header').offsetHeight;
-                draggedNodeId = isInsideNode(mouseX, mouseY);
+                const clickedNodeId = isInsideNode(mouseX, mouseY);
+                
+                // Auto-save if clicking away from editing node
+                if (editingNodeId !== null && clickedNodeId !== editingNodeId) {
+                    editingNodeId = null;
+                    textSelected = false;
+                }
+                
+                // Handle Ctrl+click for multi-selection
+                if (e.ctrlKey && clickedNodeId !== null) {
+                    if (multiSelectedNodes.includes(clickedNodeId)) {
+                        // Remove from selection
+                        multiSelectedNodes = multiSelectedNodes.filter(id => id !== clickedNodeId);
+                    } else {
+                        // Add to selection
+                        multiSelectedNodes.push(clickedNodeId);
+                    }
+                    selectedNodeId = clickedNodeId;
+                    draw();
+                    return; // Don't start dragging when Ctrl+clicking
+                }
+                
+                // Set selected node on single click, clear if clicking empty space
+                if (clickedNodeId !== null) {
+                    selectedNodeId = clickedNodeId;
+                    multiSelectedNodes = []; // Clear multi-selection on normal click
+                } else {
+                    selectedNodeId = null;
+                    multiSelectedNodes = [];
+                }
+                
+                draggedNodeId = clickedNodeId;
                 lastMouseX = mouseX;
                 lastMouseY = mouseY;
                 contextMenu.style.display = 'none'; // Hide menu on drag start
-                inlineRenameInput.style.display = 'none'; // Hide input on drag start
+                canvas.style.cursor = 'grabbing';
+                draw();
             });
 
-            // Handle mouse move event for dragging
+            // Handle mouse move event for dragging and cursor updates
             canvas.addEventListener('mousemove', (e) => {
-                if (draggedNodeId !== null) {
-                    const mouseX = e.clientX;
-                    const mouseY = e.clientY - document.querySelector('header').offsetHeight;
-                    const nodeToDrag = nodes.find(n => n.id === draggedNodeId);
-                    
-                    if (nodeToDrag) {
-                        // Move the node by the mouse movement delta
-                        nodeToDrag.x += mouseX - lastMouseX;
-                        nodeToDrag.y += mouseY - lastMouseY;
-                        lastMouseX = mouseX;
-                        lastMouseY = mouseY;
-                        draw();
+                const mouseX = e.clientX;
+                const mouseY = e.clientY - document.querySelector('header').offsetHeight;
+                
+                // Update cursor based on hover state when not dragging
+                if (lastMouseX === undefined) {
+                    const hoveredNodeId = isInsideNode(mouseX, mouseY);
+                    canvas.style.cursor = hoveredNodeId !== null ? 'default' : 'grab';
+                }
+                
+                if (lastMouseX !== undefined && lastMouseY !== undefined) {
+                    if (draggedNodeId !== null) {
+                        // Move the selected node
+                        const nodeToDrag = nodes.find(n => n.id === draggedNodeId);
+                        if (nodeToDrag) {
+                            nodeToDrag.x += (mouseX - lastMouseX) / zoomScale;
+                            nodeToDrag.y += (mouseY - lastMouseY) / zoomScale;
+                        }
+                    } else {
+                        // Pan the canvas
+                        panX += mouseX - lastMouseX;
+                        panY += mouseY - lastMouseY;
                     }
+                    
+                    lastMouseX = mouseX;
+                    lastMouseY = mouseY;
+                    draw();
                 }
             });
 
             // Handle mouse up event to stop dragging
             canvas.addEventListener('mouseup', () => {
                 draggedNodeId = null;
+                lastMouseX = undefined;
+                lastMouseY = undefined;
+                canvas.style.cursor = 'grab';
             });
             
             // Handle double-click for inline renaming
@@ -358,27 +521,93 @@
                 const mouseY = e.clientY - document.querySelector('header').offsetHeight;
                 const nodeId = isInsideNode(mouseX, mouseY);
                 if (nodeId !== null) {
-                    const nodeToRename = nodes.find(n => n.id === nodeId);
-                    if (nodeToRename) {
-                        selectedNodeId = nodeId;
-                        inlineRenameInput.value = nodeToRename.text;
-                        inlineRenameInput.style.display = 'block';
-                        // Position the input field at the node's location
-                        inlineRenameInput.style.left = `${nodeToRename.x + canvas.offsetLeft}px`;
-                        inlineRenameInput.style.top = `${nodeToRename.y + canvas.offsetTop}px`;
-                        // Set initial width based on text
-                        ctx.font = '16px "Inter", sans-serif';
-                        const textWidth = ctx.measureText(nodeToRename.text).width;
-                        inlineRenameInput.style.width = `${textWidth + 30}px`; // Add padding
-                        inlineRenameInput.focus();
-                        inlineRenameInput.select();
+                    editingNodeId = nodeId;
+                    selectedNodeId = nodeId;
+                    textSelected = false;
+                    draw();
+                }
+            });
+
+            // Handle keyboard input for editing and connections
+            window.addEventListener('keydown', (e) => {
+                // Handle Enter for connecting/disconnecting multi-selected nodes
+                if (e.key === 'Enter' && editingNodeId === null && multiSelectedNodes.length > 1) {
+                    e.preventDefault();
+                    // Connect all selected nodes in sequence
+                    for (let i = 0; i < multiSelectedNodes.length - 1; i++) {
+                        const parentNode = nodes.find(n => n.id === multiSelectedNodes[i]);
+                        const childNode = nodes.find(n => n.id === multiSelectedNodes[i + 1]);
+                        
+                        if (parentNode && childNode) {
+                            // Check if already connected in either direction
+                            const isConnectedForward = childNode.parent === parentNode.id;
+                            const isConnectedReverse = parentNode.parent === childNode.id;
+                            
+                            if (isConnectedForward) {
+                                // Disconnect forward connection
+                                childNode.parent = null;
+                                parentNode.children = parentNode.children.filter(id => id !== childNode.id);
+                            } else if (isConnectedReverse) {
+                                // Disconnect reverse connection
+                                parentNode.parent = null;
+                                childNode.children = childNode.children.filter(id => id !== parentNode.id);
+                            } else {
+                                // Connect: ensure child only has one parent
+                                if (childNode.parent !== null) {
+                                    const oldParent = nodes.find(n => n.id === childNode.parent);
+                                    if (oldParent) {
+                                        oldParent.children = oldParent.children.filter(id => id !== childNode.id);
+                                    }
+                                }
+                                childNode.parent = parentNode.id;
+                                if (!parentNode.children.includes(childNode.id)) {
+                                    parentNode.children.push(childNode.id);
+                                }
+                                // Clean up any data inconsistencies
+                                cleanupConnections();
+                            }
+                        }
+                    }
+                    multiSelectedNodes = [];
+                    cleanupConnections();
+                    draw();
+                    return;
+                }
+                
+                if (editingNodeId !== null) {
+                    e.preventDefault(); // Prevent default browser behavior when editing
+                    const editingNode = nodes.find(n => n.id === editingNodeId);
+                    if (editingNode) {
+                        if (e.key === 'Enter' || e.key === 'Escape') {
+                            editingNodeId = null;
+                            textSelected = false;
+                            draw();
+                        } else if (e.ctrlKey && e.key === 'a') {
+                            textSelected = true;
+                            draw();
+                        } else if (e.key === 'Backspace') {
+                            if (textSelected) {
+                                editingNode.text = '';
+                                textSelected = false;
+                            } else {
+                                editingNode.text = editingNode.text.slice(0, -1);
+                            }
+                            draw();
+                        } else if (e.key.length === 1 && !e.ctrlKey) {
+                            if (textSelected) {
+                                editingNode.text = e.key;
+                                textSelected = false;
+                            } else {
+                                editingNode.text += e.key;
+                            }
+                            draw();
+                        }
                     }
                 }
             });
 
             // Handle right-click context menu
             canvas.addEventListener('contextmenu', (e) => {
-                e.preventDefault();
                 const mouseX = e.clientX;
                 const mouseY = e.clientY - document.querySelector('header').offsetHeight;
 
@@ -403,36 +632,15 @@
 
             // Hide the menu on any other click
             window.addEventListener('click', (e) => {
-                if (!contextMenu.contains(e.target) && !canvas.contains(e.target) && e.target !== inlineRenameInput && e.target !== curvedLinesToggle) {
+                if (!contextMenu.contains(e.target) && !canvas.contains(e.target) && e.target !== curvedLinesToggle) {
                     contextMenu.style.display = 'none';
-                    if (inlineRenameInput.style.display === 'block') {
-                         inlineRenameInput.style.display = 'none';
-                         renameNode(selectedNodeId, inlineRenameInput.value.trim());
-                    }
+                    editingNodeId = null;
+                    textSelected = false;
+                    draw();
                 }
             });
 
-            // --- Inline Renaming Actions ---
 
-            // Dynamically resize the input field as text is typed
-            inlineRenameInput.addEventListener('input', () => {
-                ctx.font = '16px "Inter", sans-serif'; // Must match canvas font for accurate measurement
-                const newWidth = ctx.measureText(inlineRenameInput.value).width;
-                inlineRenameInput.style.width = `${newWidth + 30}px`; // Add padding
-            });
-
-            // Save on blur (clicking outside the input)
-            inlineRenameInput.addEventListener('blur', () => {
-                renameNode(selectedNodeId, inlineRenameInput.value.trim());
-                inlineRenameInput.style.display = 'none';
-            });
-            
-            // Save on 'Enter' key press
-            inlineRenameInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    inlineRenameInput.blur();
-                }
-            });
             
             // Toggle for curved/straight lines
             curvedLinesToggle.addEventListener('change', () => {
@@ -443,8 +651,8 @@
 
             menuCreateBtn.addEventListener('click', () => {
                 if (contextMenu.style.display === 'block') {
-                    const menuX = parseInt(contextMenu.style.left);
-                    const menuY = parseInt(contextMenu.style.top) - document.querySelector('header').offsetHeight;
+                    const menuX = (parseInt(contextMenu.style.left) - panX) / zoomScale;
+                    const menuY = (parseInt(contextMenu.style.top) - document.querySelector('header').offsetHeight - panY) / zoomScale;
                     createNode(menuX, menuY);
                     contextMenu.style.display = 'none';
                 }
@@ -470,19 +678,10 @@
 
             menuRenameBtn.addEventListener('click', () => {
                 if (selectedNodeId !== null && contextMenu.style.display === 'block') {
-                    const nodeToRename = nodes.find(n => n.id === selectedNodeId);
-                    if (nodeToRename) {
-                        inlineRenameInput.value = nodeToRename.text;
-                        inlineRenameInput.style.display = 'block';
-                        inlineRenameInput.style.left = `${nodeToRename.x + canvas.offsetLeft}px`;
-                        inlineRenameInput.style.top = `${nodeToRename.y + canvas.offsetTop}px`;
-                        ctx.font = '16px "Inter", sans-serif';
-                        const textWidth = ctx.measureText(nodeToRename.text).width;
-                        inlineRenameInput.style.width = `${textWidth + 30}px`;
-                        inlineRenameInput.focus();
-                        inlineRenameInput.select();
-                    }
+                    editingNodeId = selectedNodeId;
+                    textSelected = false;
                     contextMenu.style.display = 'none';
+                    draw();
                 }
             });
         };
