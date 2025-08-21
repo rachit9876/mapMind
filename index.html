@@ -115,6 +115,7 @@
             <li id="menu-add-branch" class="disabled">Add Branch</li>
             <li id="menu-rename" class="disabled">Rename Node</li>
             <li id="menu-delete" class="disabled">Delete Element</li>
+            <li id="menu-delete-connection" class="disabled">Delete Connection</li>
         </ul>
     </div>
 
@@ -131,6 +132,7 @@
             const menuAddBranchBtn = document.getElementById('menu-add-branch');
             const menuRenameBtn = document.getElementById('menu-rename');
             const menuDeleteBtn = document.getElementById('menu-delete');
+            const menuDeleteConnectionBtn = document.getElementById('menu-delete-connection');
             const inlineRenameInput = document.getElementById('inline-rename-input');
 
             // --- State Management ---
@@ -144,6 +146,7 @@
             let editingNodeId = null;
             let textSelected = false;
             let multiSelectedNodes = [];
+            let selectedConnectionId = null;
 
             // --- Canvas and Drawing Logic ---
 
@@ -170,6 +173,9 @@
                 ctx.scale(zoomScale, zoomScale);
 
                 // Draw branches (lines) first
+                // Ensure consistent font before measuring/drawing text
+                ctx.font = '16px "Inter", sans-serif';
+
                 for (const node of nodes) {
                     if (node.parent !== null) {
                         const parentNode = nodes.find(n => n.id === node.parent);
@@ -221,7 +227,7 @@
                     
                     // Draw node rectangle
                     const padding = 15;
-                    // Measure text to determine node width
+                    // Measure text to determine node width (font set above)
                     const textWidth = ctx.measureText(node.text).width;
                     const rectWidth = textWidth + padding * 2;
                     const rectHeight = 40;
@@ -244,7 +250,6 @@
                     
                     // Draw text inside the node
                     ctx.fillStyle = '#1f2937'; // gray-900
-                    ctx.font = '16px "Inter", sans-serif';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
                     
@@ -287,6 +292,72 @@
                 return null;
             }
 
+            // Hit test to see if a click is on a connection line
+            function isOnConnection(x, y) {
+                // Convert screen coords to canvas (world) coords
+                const adjustedX = (x - panX) / zoomScale;
+                const adjustedY = (y - panY) / zoomScale;
+                // Keep hit tolerance roughly constant in screen space
+                const tolerance = 8 / zoomScale;
+                const segDist = (px, py, x1, y1, x2, y2) => {
+                    const A = px - x1;
+                    const B = py - y1;
+                    const C = x2 - x1;
+                    const D = y2 - y1;
+                    const dot = A * C + B * D;
+                    const lenSq = C * C + D * D;
+                    let t = lenSq !== 0 ? dot / lenSq : -1;
+                    t = Math.max(0, Math.min(1, t));
+                    const xx = x1 + t * C;
+                    const yy = y1 + t * D;
+                    const dx = px - xx;
+                    const dy = py - yy;
+                    return Math.hypot(dx, dy);
+                };
+                
+                for (const node of nodes) {
+                    if (node.parent !== null) {
+                        const parentNode = nodes.find(n => n.id === node.parent);
+                        if (parentNode) {
+                            const startX = parentNode.x + parentNode.width / 2;
+                            const startY = parentNode.y + parentNode.height / 2;
+                            const endX = node.x + node.width / 2;
+                            const endY = node.y + node.height / 2;
+                            if (curvedLinesToggle.checked) {
+                                // Approximate the cubic Bezier curve with small segments and test distance
+                                const dx = endX - startX;
+                                const dy = endY - startY;
+                                const controlOffset = Math.min(Math.abs(dx), Math.abs(dy)) * 0.6;
+                                const c1x = startX + controlOffset;
+                                const c1y = startY;
+                                const c2x = endX - controlOffset;
+                                const c2y = endY;
+                                const steps = 20;
+                                let prevX = startX;
+                                let prevY = startY;
+                                for (let i = 1; i <= steps; i++) {
+                                    const t = i / steps;
+                                    // Cubic Bezier formula
+                                    const mt = 1 - t;
+                                    const bx = mt*mt*mt*startX + 3*mt*mt*t*c1x + 3*mt*t*t*c2x + t*t*t*endX;
+                                    const by = mt*mt*mt*startY + 3*mt*mt*t*c1y + 3*mt*t*t*c2y + t*t*t*endY;
+                                    if (segDist(adjustedX, adjustedY, prevX, prevY, bx, by) <= tolerance) {
+                                        return { parentId: node.parent, childId: node.id };
+                                    }
+                                    prevX = bx;
+                                    prevY = by;
+                                }
+                            } else {
+                                if (segDist(adjustedX, adjustedY, startX, startY, endX, endY) <= tolerance) {
+                                    return { parentId: node.parent, childId: node.id };
+                                }
+                            }
+                        }
+                    }
+                }
+                return null;
+            }
+
             // Clean up connection inconsistencies
             function cleanupConnections() {
                 // Remove duplicate children and fix parent-child mismatches
@@ -294,17 +365,27 @@
                     // Remove duplicate children
                     node.children = [...new Set(node.children)];
                     
-                    // Ensure all children have this node as parent
+                    // Ensure all children exist and have this node as parent
                     node.children = node.children.filter(childId => {
                         const child = nodes.find(n => n.id === childId);
-                        return child && child.parent === node.id;
+                        if (!child) return false; // Child node doesn't exist
+                        if (child.parent !== node.id) {
+                            // Fix the parent reference
+                            child.parent = node.id;
+                        }
+                        return true;
                     });
                     
-                    // If node has a parent, ensure parent has this node as child
+                    // If node has a parent, ensure parent exists and has this node as child
                     if (node.parent !== null) {
                         const parent = nodes.find(n => n.id === node.parent);
-                        if (parent && !parent.children.includes(node.id)) {
-                            parent.children.push(node.id);
+                        if (parent) {
+                            if (!parent.children.includes(node.id)) {
+                                parent.children.push(node.id);
+                            }
+                        } else {
+                            // Parent doesn't exist, remove the reference
+                            node.parent = null;
                         }
                     }
                 }
@@ -371,6 +452,20 @@
                 draw();
             }
 
+            // Deletes a connection between two nodes
+            function deleteConnection(parentId, childId) {
+                const parentNode = nodes.find(n => n.id === parentId);
+                const childNode = nodes.find(n => n.id === childId);
+                
+                if (parentNode && childNode) {
+                    // Remove child from parent's children array
+                    parentNode.children = parentNode.children.filter(id => id !== childId);
+                    // Remove parent reference from child
+                    childNode.parent = null;
+                    draw();
+                }
+            }
+
             // Renames a node
             function renameNode(nodeId, newText) {
                 const node = nodes.find(n => n.id === nodeId);
@@ -382,10 +477,7 @@
             
             // --- Event Listeners ---
             
-            // Disable right-click context menu globally
-            document.addEventListener('contextmenu', (e) => {
-                e.preventDefault();
-            });
+            // Note: Right-click context menu is handled on the canvas element below; do not block it globally
             
             // Initialize the canvas size
             resizeCanvas();
@@ -435,8 +527,9 @@
                 // Only allow left-click dragging
                 if (e.button !== 0) return;
                 
-                const mouseX = e.clientX;
-                const mouseY = e.clientY - document.querySelector('header').offsetHeight;
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
                 const clickedNodeId = isInsideNode(mouseX, mouseY);
                 
                 // Auto-save if clicking away from editing node
@@ -445,8 +538,13 @@
                     textSelected = false;
                 }
                 
-                // Handle Ctrl+click for multi-selection
-                if (e.ctrlKey && clickedNodeId !== null) {
+                // Handle Ctrl/Meta + click for multi-selection
+                if ((e.ctrlKey || e.metaKey) && clickedNodeId !== null) {
+                    // If there's a selectedNodeId that's not in multiSelectedNodes, add it first
+                    if (selectedNodeId !== null && !multiSelectedNodes.includes(selectedNodeId)) {
+                        multiSelectedNodes.push(selectedNodeId);
+                    }
+                    
                     if (multiSelectedNodes.includes(clickedNodeId)) {
                         // Remove from selection
                         multiSelectedNodes = multiSelectedNodes.filter(id => id !== clickedNodeId);
@@ -478,8 +576,9 @@
 
             // Handle mouse move event for dragging and cursor updates
             canvas.addEventListener('mousemove', (e) => {
-                const mouseX = e.clientX;
-                const mouseY = e.clientY - document.querySelector('header').offsetHeight;
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
                 
                 // Update cursor based on hover state when not dragging
                 if (lastMouseX === undefined) {
@@ -517,8 +616,9 @@
             
             // Handle double-click for inline renaming
             canvas.addEventListener('dblclick', (e) => {
-                const mouseX = e.clientX;
-                const mouseY = e.clientY - document.querySelector('header').offsetHeight;
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
                 const nodeId = isInsideNode(mouseX, mouseY);
                 if (nodeId !== null) {
                     editingNodeId = nodeId;
@@ -530,48 +630,34 @@
 
             // Handle keyboard input for editing and connections
             window.addEventListener('keydown', (e) => {
-                // Handle Enter for connecting/disconnecting multi-selected nodes
+                // Handle Enter for connecting nodes
                 if (e.key === 'Enter' && editingNodeId === null && multiSelectedNodes.length > 1) {
-                    e.preventDefault();
-                    // Connect all selected nodes in sequence
-                    for (let i = 0; i < multiSelectedNodes.length - 1; i++) {
-                        const parentNode = nodes.find(n => n.id === multiSelectedNodes[i]);
-                        const childNode = nodes.find(n => n.id === multiSelectedNodes[i + 1]);
-                        
-                        if (parentNode && childNode) {
-                            // Check if already connected in either direction
-                            const isConnectedForward = childNode.parent === parentNode.id;
-                            const isConnectedReverse = parentNode.parent === childNode.id;
+                        e.preventDefault();
+                        // Connect all nodes in sequence
+                        for (let i = 0; i < multiSelectedNodes.length - 1; i++) {
+                            const parentNode = nodes.find(n => n.id === multiSelectedNodes[i]);
+                            const childNode = nodes.find(n => n.id === multiSelectedNodes[i + 1]);
                             
-                            if (isConnectedForward) {
-                                // Disconnect forward connection
-                                childNode.parent = null;
-                                parentNode.children = parentNode.children.filter(id => id !== childNode.id);
-                            } else if (isConnectedReverse) {
-                                // Disconnect reverse connection
-                                parentNode.parent = null;
-                                childNode.children = childNode.children.filter(id => id !== parentNode.id);
-                            } else {
-                                // Connect: ensure child only has one parent
-                                if (childNode.parent !== null) {
-                                    const oldParent = nodes.find(n => n.id === childNode.parent);
-                                    if (oldParent) {
-                                        oldParent.children = oldParent.children.filter(id => id !== childNode.id);
+                            if (parentNode && childNode) {
+                                // Only connect if not already connected
+                                const isConnectedForward = childNode.parent === parentNode.id;
+                                const isConnectedReverse = parentNode.parent === childNode.id;
+                                
+                                if (!isConnectedForward && !isConnectedReverse) {
+                                    // Only connect if child doesn't already have a parent
+                                    if (childNode.parent === null) {
+                                        childNode.parent = parentNode.id;
+                                        if (!parentNode.children.includes(childNode.id)) {
+                                            parentNode.children.push(childNode.id);
+                                        }
                                     }
                                 }
-                                childNode.parent = parentNode.id;
-                                if (!parentNode.children.includes(childNode.id)) {
-                                    parentNode.children.push(childNode.id);
-                                }
-                                // Clean up any data inconsistencies
-                                cleanupConnections();
                             }
                         }
-                    }
-                    multiSelectedNodes = [];
-                    cleanupConnections();
-                    draw();
-                    return;
+                        multiSelectedNodes = [];
+                        cleanupConnections();
+                        draw();
+                        return;
                 }
                 
                 if (editingNodeId !== null) {
@@ -582,7 +668,7 @@
                             editingNodeId = null;
                             textSelected = false;
                             draw();
-                        } else if (e.ctrlKey && e.key === 'a') {
+                        } else if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
                             textSelected = true;
                             draw();
                         } else if (e.key === 'Backspace') {
@@ -608,10 +694,13 @@
 
             // Handle right-click context menu
             canvas.addEventListener('contextmenu', (e) => {
-                const mouseX = e.clientX;
-                const mouseY = e.clientY - document.querySelector('header').offsetHeight;
+                e.preventDefault();
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
 
                 selectedNodeId = isInsideNode(mouseX, mouseY);
+                selectedConnectionId = isOnConnection(mouseX, mouseY);
 
                 // Position the menu
                 contextMenu.style.top = `${e.clientY}px`;
@@ -623,20 +712,25 @@
                     menuAddBranchBtn.classList.remove('disabled');
                     menuRenameBtn.classList.remove('disabled');
                     menuDeleteBtn.classList.remove('disabled');
+                    menuDeleteConnectionBtn.classList.add('disabled');
+                } else if (selectedConnectionId !== null) {
+                    menuAddBranchBtn.classList.add('disabled');
+                    menuRenameBtn.classList.add('disabled');
+                    menuDeleteBtn.classList.add('disabled');
+                    menuDeleteConnectionBtn.classList.remove('disabled');
                 } else {
                     menuAddBranchBtn.classList.add('disabled');
                     menuRenameBtn.classList.add('disabled');
                     menuDeleteBtn.classList.add('disabled');
+                    menuDeleteConnectionBtn.classList.add('disabled');
                 }
             });
 
-            // Hide the menu on any other click
+            // Hide the menu on any click outside the menu
             window.addEventListener('click', (e) => {
-                if (!contextMenu.contains(e.target) && !canvas.contains(e.target) && e.target !== curvedLinesToggle) {
+                if (!contextMenu.contains(e.target)) {
                     contextMenu.style.display = 'none';
-                    editingNodeId = null;
-                    textSelected = false;
-                    draw();
+                    // Do not force-exit editing on generic clicks; canvas handlers manage that
                 }
             });
 
@@ -651,8 +745,9 @@
 
             menuCreateBtn.addEventListener('click', () => {
                 if (contextMenu.style.display === 'block') {
-                    const menuX = (parseInt(contextMenu.style.left) - panX) / zoomScale;
-                    const menuY = (parseInt(contextMenu.style.top) - document.querySelector('header').offsetHeight - panY) / zoomScale;
+                    const rect = canvas.getBoundingClientRect();
+                    const menuX = (parseInt(contextMenu.style.left) - rect.left - panX) / zoomScale;
+                    const menuY = (parseInt(contextMenu.style.top) - rect.top - panY) / zoomScale;
                     createNode(menuX, menuY);
                     contextMenu.style.display = 'none';
                 }
@@ -682,6 +777,14 @@
                     textSelected = false;
                     contextMenu.style.display = 'none';
                     draw();
+                }
+            });
+
+            menuDeleteConnectionBtn.addEventListener('click', () => {
+                if (selectedConnectionId !== null && contextMenu.style.display === 'block') {
+                    deleteConnection(selectedConnectionId.parentId, selectedConnectionId.childId);
+                    selectedConnectionId = null;
+                    contextMenu.style.display = 'none';
                 }
             });
         };
