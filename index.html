@@ -126,7 +126,7 @@
 
     <main class="flex-1 dot-background relative">
         <canvas id="mindMapCanvas"></canvas>
-        <input type="text" id="node-editor" class="absolute hidden text-center outline-none bg-transparent border-none text-[var(--node-text)] rounded-lg p-2 z-10" />
+        <textarea id="node-editor" class="absolute hidden text-left outline-none bg-transparent border-none text-[var(--node-text)] rounded-lg p-2 z-10 resize-none overflow-visible whitespace-nowrap" rows="1" wrap="off"></textarea>
     </main>
 
     <div id="context-menu" class="absolute hidden z-30 rounded-lg shadow-lg w-48">
@@ -215,7 +215,7 @@
 
             const drawNodes = () => {
                 ctx.font = `500 ${FONT_SIZE}px Inter`;
-                ctx.textAlign = 'center';
+                ctx.textAlign = 'left';
                 ctx.textBaseline = 'middle';
 
                 for (const node of state.nodes) {
@@ -236,7 +236,13 @@
                     
                     if (node.id !== state.editingNodeId) {
                         ctx.fillStyle = getCssVar('--node-text');
-                        ctx.fillText(node.text, node.x + node.width / 2, node.y + node.height / 2);
+                        const lines = node.text.split('\n');
+                        const lineHeight = FONT_SIZE * 1.2;
+                        const startY = node.y + node.height / 2 - ((lines.length - 1) * lineHeight) / 2;
+                        
+                        lines.forEach((line, index) => {
+                            ctx.fillText(line, node.x + NODE_PADDING, startY + index * lineHeight);
+                        });
                     }
                 }
             };
@@ -337,10 +343,19 @@
             };
 
             const updateNodeDimensions = (node) => {
+                ctx.font = `500 ${FONT_SIZE}px Inter`;
                 const lines = node.text.split('\n');
-                const width = Math.max(...lines.map(line => ctx.measureText(line).width));
-                node.width = width + NODE_PADDING * 2;
-                node.height = lines.length * FONT_SIZE + NODE_PADDING * 2;
+                const maxWidth = Math.max(...lines.map(line => ctx.measureText(line).width), 100);
+                const lineHeight = FONT_SIZE * 1.2;
+                node.width = maxWidth + NODE_PADDING * 2;
+                node.height = lines.length * lineHeight + NODE_PADDING * 2;
+            };
+
+            const autoResizeEditor = () => {
+                nodeEditor.style.height = 'auto';
+                nodeEditor.style.width = 'auto';
+                nodeEditor.style.height = nodeEditor.scrollHeight + 'px';
+                nodeEditor.style.width = Math.max(nodeEditor.scrollWidth, 100) + 'px';
             };
 
             const startEditingNode = (nodeId) => {
@@ -353,12 +368,11 @@
                 nodeEditor.value = node.text;
                 nodeEditor.style.left = `${screenPos.x}px`;
                 nodeEditor.style.top = `${screenPos.y}px`;
-                nodeEditor.style.width = `${node.width * state.zoom}px`;
-                nodeEditor.style.height = `${node.height * state.zoom}px`;
                 nodeEditor.style.fontSize = `${FONT_SIZE * state.zoom}px`;
                 nodeEditor.style.padding = `${NODE_PADDING * state.zoom}px`;
                 nodeEditor.style.lineHeight = `${FONT_SIZE * state.zoom}px`;
                 nodeEditor.classList.remove('hidden');
+                autoResizeEditor();
                 nodeEditor.focus();
                 nodeEditor.select();
                 requestRedraw();
@@ -392,8 +406,31 @@
 
                 nodeEditor.addEventListener('blur', finishEditingNode);
                 nodeEditor.addEventListener('keydown', e => {
-                    if (e.key === 'Enter' && !e.shiftKey) finishEditingNode();
+                    if (e.key === 'Enter') {
+                        if (e.shiftKey) {
+                            // Allow new line with Shift+Enter
+                            setTimeout(() => {
+                                autoResizeEditor();
+                            }, 0);
+                        } else {
+                            e.preventDefault();
+                            finishEditingNode();
+                        }
+                    }
                     if (e.key === 'Escape') hideNodeEditor();
+                });
+                
+                nodeEditor.addEventListener('input', () => {
+                    autoResizeEditor();
+                    // Update node size in real-time
+                    if (state.editingNodeId) {
+                        const node = findNodeById(state.editingNodeId);
+                        if (node) {
+                            node.text = nodeEditor.value;
+                            updateNodeDimensions(node);
+                            requestRedraw();
+                        }
+                    }
                 });
 
                 dom.addNodeBtn.addEventListener('click', () => {
