@@ -7,39 +7,39 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         :root {
-            --bg: #ffffff;
-            --bg-secondary: #f9fafb;
-            --border: #e5e7eb;
-            --text-primary: #1f2937;
-            --text-secondary: #6b7280;
-            --accent: #4f46e5;
-            --accent-hover: #4338ca;
-            --node-bg: #ffffff;
-            --node-border: #d1d5db;
-            --node-text: #1f2937;
-            --node-shadow: rgba(0,0,0,0.05);
-            --line: #9ca3af;
-            --dot: #e5e7eb;
+            --bg: #f5f6fa;
+            --bg-secondary: #ffffff;
+            --border: #e0e0e0;
+            --text-primary: #222;
+            --text-secondary: #888;
+            --accent: #007aff;
+            --accent-hover: #0051a8;
+            --node-bg: #fff;
+            --node-border: #e0e0e0;
+            --node-text: #222;
+            --node-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            --line: #d1d5db;
+            --dot: #e0e0e0;
         }
         html.dark {
-            --bg: #111827;
-            --bg-secondary: #1f2937;
-            --border: #374151;
-            --text-primary: #f9fafb;
-            --text-secondary: #9ca3af;
-            --accent: #6366f1;
-            --accent-hover: #4f46e5;
-            --node-bg: #1f2937;
-            --node-border: #4b5563;
-            --node-text: #f9fafb;
-            --node-shadow: rgba(0,0,0,0.2);
-            --line: #6b7280;
-            --dot: #374151;
+            --bg: #23272f;
+            --bg-secondary: #2c2f36;
+            --border: #444;
+            --text-primary: #f5f6fa;
+            --text-secondary: #bbb;
+            --accent: #0a84ff;
+            --accent-hover: #0051a8;
+            --node-bg: #2c2f36;
+            --node-border: #444;
+            --node-text: #f5f6fa;
+            --node-shadow: 0 4px 16px rgba(0,0,0,0.18);
+            --line: #444;
+            --dot: #444;
         }
         body {
             background-color: var(--bg);
             color: var(--text-primary);
-            font-family: 'Inter', sans-serif;
+            font-family: 'Inter', 'San Francisco', 'Segoe UI', sans-serif;
             overflow: hidden;
         }
         .dot-background {
@@ -49,10 +49,11 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 2.5rem;
-            height: 2.5rem;
-            border-radius: 0.5rem;
-            transition: background-color 0.2s;
+            width: 2.2rem;
+            height: 2.2rem;
+            border-radius: 0.7rem;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+            transition: background 0.2s, box-shadow 0.2s;
         }
         .btn-secondary {
             background-color: var(--bg-secondary);
@@ -63,7 +64,8 @@
         }
         .btn-primary {
             background-color: var(--accent);
-            color: white;
+            color: #fff;
+            border: none;
         }
         .btn-primary:hover {
             background-color: var(--accent-hover);
@@ -71,10 +73,29 @@
         #context-menu {
             background-color: var(--bg-secondary);
             border: 1px solid var(--border);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+        }
+        #context-menu li {
+            border-radius: 0.4rem;
+            margin: 2px 0;
         }
         #context-menu li:hover {
             background-color: var(--accent);
-            color: white;
+            color: #fff;
+        }
+        header {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            border-radius: 0 0 1rem 1rem;
+            margin-bottom: 0.5rem;
+        }
+        .rounded-lg {
+            border-radius: 1rem !important;
+        }
+        .flex {
+            gap: 0.5rem;
+        }
+        .absolute.left-1\/2 {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
         }
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -85,10 +106,9 @@
 
     <header class="bg-[var(--bg-secondary)]/80 backdrop-blur-xl border-b border-[var(--border)] p-2 flex justify-between items-center z-20">
         <div class="flex items-center gap-2">
-            <h1 class="text-xl font-bold">Mind Map</h1>
+            <h1 class="text-2xl font-semibold tracking-tight" style="font-family: 'San Francisco', 'Inter', sans-serif; letter-spacing: -0.02em;">Mind Map</h1>
         </div>
-        
-        <div class="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 p-1 bg-[var(--bg)] border border-[var(--border)] rounded-lg">
+        <div class="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 p-2 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-md">
             <button id="undoBtn" class="btn btn-secondary" title="Undo (Ctrl+Z)" disabled>
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 15l-3-3m0 0l3-3m-3 3h8a5 5 0 0 0 0-10H9"></path></svg>
             </button>
@@ -132,8 +152,8 @@
     </header>
 
     <main class="flex-1 dot-background relative">
-        <canvas id="mindMapCanvas"></canvas>
-        <textarea id="node-editor" class="absolute hidden text-left outline-none bg-transparent border-none text-[var(--node-text)] rounded-lg p-2 z-10 resize-none overflow-hidden" rows="1" wrap="off"></textarea>
+    <canvas id="mindMapCanvas"></canvas>
+    <textarea id="node-editor" class="absolute hidden text-left outline-none bg-[var(--node-bg)] border border-[var(--node-border)] text-[var(--node-text)] rounded-lg p-2 z-10 resize-none overflow-hidden shadow-lg" rows="1" wrap="off"></textarea>
     </main>
 
     <div id="context-menu" class="absolute hidden z-30 rounded-lg shadow-lg w-48">
@@ -744,7 +764,7 @@
             const renderMarkdownText = (ctx, text, x, y) => {
                 const parts = parseMarkdown(text);
                 let currentX = x;
-                let currentY = y + FONT_SIZE;
+                let currentY = y + FONT_SIZE * 0.8;
                 const lineHeight = FONT_SIZE * 1.4;
                 
                 parts.forEach(part => {
@@ -776,8 +796,8 @@
                                 const width = ctx.measureText(line).width;
                                 ctx.strokeStyle = getCssVar('--node-text');
                                 ctx.beginPath();
-                                ctx.moveTo(currentX, currentY - FONT_SIZE/4);
-                                ctx.lineTo(currentX + width, currentY - FONT_SIZE/4);
+                                ctx.moveTo(currentX, currentY - FONT_SIZE/10);
+                                ctx.lineTo(currentX + width, currentY - FONT_SIZE/10);
                                 ctx.stroke();
                             }
                             
@@ -818,7 +838,7 @@
                 });
                 
                 maxWidth = Math.max(maxWidth, currentLineWidth, 80);
-                totalHeight = totalHeight || lineHeight;
+                totalHeight = totalHeight + lineHeight;
                 
                 return { width: maxWidth, height: totalHeight };
             };
