@@ -22,16 +22,16 @@
             --dot: #e0e0e0;
         }
         html.dark {
-            --bg: #23272f;
+            --bg: #292929;
             --bg-secondary: #2c2f36;
             --border: #444;
-            --text-primary: #f5f6fa;
+            --text-primary: #ffffff;
             --text-secondary: #bbb;
             --accent: #0a84ff;
             --accent-hover: #0051a8;
-            --node-bg: #2c2f36;
+            --node-bg: #000000;
             --node-border: #444;
-            --node-text: #f5f6fa;
+            --node-text: #ffffff;
             --node-shadow: 0 4px 16px rgba(0,0,0,0.18);
             --line: #444;
             --dot: #444;
@@ -39,7 +39,6 @@
         body {
             background-color: var(--bg);
             color: var(--text-primary);
-            font-family: 'Inter', 'San Francisco', 'Segoe UI', sans-serif;
             overflow: hidden;
         }
         .dot-background {
@@ -83,11 +82,7 @@
             background-color: var(--accent);
             color: #fff;
         }
-        header {
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-            border-radius: 0 0 1rem 1rem;
-            margin-bottom: 0.5rem;
-        }
+
         .rounded-lg {
             border-radius: 1rem !important;
         }
@@ -98,15 +93,13 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.04);
         }
     </style>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
 </head>
 <body class="flex flex-col h-screen">
 
     <header class="bg-[var(--bg-secondary)]/80 backdrop-blur-xl border-b border-[var(--border)] p-2 flex justify-between items-center z-20">
         <div class="flex items-center gap-2">
-            <h1 class="text-2xl font-semibold tracking-tight" style="font-family: 'San Francisco', 'Inter', sans-serif; letter-spacing: -0.02em;">Mind Map</h1>
+            <h1 class="text-2xl font-semibold tracking-tight" style="letter-spacing: -0.02em;">Mind Map</h1>
         </div>
         <div class="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 p-2 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-md">
             <button id="undoBtn" class="btn btn-secondary" title="Undo (Ctrl+Z)" disabled>
@@ -246,7 +239,7 @@
             };
 
             const drawNodes = () => {
-                ctx.font = `500 ${FONT_SIZE}px Inter`;
+                ctx.font = `500 ${FONT_SIZE}px sans-serif`;
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'middle';
 
@@ -410,7 +403,7 @@
             };
 
             const updateNodeDimensions = (node) => {
-                ctx.font = `500 ${FONT_SIZE}px Inter`;
+                ctx.font = `500 ${FONT_SIZE}px sans-serif`;
                 if (state.markdownMode) {
                     const dimensions = measureMarkdownText(ctx, node.text);
                     node.width = dimensions.width + NODE_PADDING * 2;
@@ -555,6 +548,21 @@
                     return;
                 }
 
+                // Check for link click before setting up drag
+                if (clickedNodeId && state.markdownMode) {
+                    const node = findNodeById(clickedNodeId);
+                    if (node) {
+                        const worldPos = screenToWorld(pos.x, pos.y);
+                        const relativeX = worldPos.x - node.x - NODE_PADDING;
+                        const relativeY = worldPos.y - node.y - NODE_PADDING;
+                        const clickedLink = findLinkAtPosition(node.text, relativeX, relativeY);
+                        if (clickedLink) {
+                            window.open(clickedLink, '_blank');
+                            return;
+                        }
+                    }
+                }
+
                 state.selectedNodeId = clickedNodeId;
 
                 if (clickedNodeId) {
@@ -572,6 +580,21 @@
                 const pos = getMousePos(e);
                 const dx = (pos.x - state.dragStart.x);
                 const dy = (pos.y - state.dragStart.y);
+
+                // Check if hovering over a link
+                const clickedNodeId = findNodeAt(pos.x, pos.y);
+                if (clickedNodeId && state.markdownMode && !state.isDragging && !state.isPanning) {
+                    const node = findNodeById(clickedNodeId);
+                    if (node) {
+                        const worldPos = screenToWorld(pos.x, pos.y);
+                        const relativeX = worldPos.x - node.x - NODE_PADDING;
+                        const relativeY = worldPos.y - node.y - NODE_PADDING;
+                        const hoveredLink = findLinkAtPosition(node.text, relativeX, relativeY);
+                        canvas.style.cursor = hoveredLink ? 'pointer' : 'default';
+                    }
+                } else {
+                    canvas.style.cursor = 'default';
+                }
 
                 if (state.connecting) {
                     state.dragStart = { x: pos.x, y: pos.y };
@@ -616,6 +639,8 @@
                     startEditingNode(clickedNodeId);
                 }
             };
+
+
 
             const onKeyDown = (e) => {
                 if (state.editingNodeId) return;
@@ -810,16 +835,57 @@
                 return img;
             };
             
+            const findLinkAtPosition = (text, x, y) => {
+                const parts = parseMarkdown(text);
+                let currentX = 0;
+                let currentY = FONT_SIZE * 0.8;
+                const lineHeight = FONT_SIZE * 1.4;
+                let currentLineHeight = lineHeight;
+                
+                ctx.font = `500 ${FONT_SIZE}px Inter`;
+                
+                for (const part of parts) {
+                    if (part.text === '\n') {
+                        currentY += currentLineHeight;
+                        currentX = 0;
+                        currentLineHeight = lineHeight;
+                        continue;
+                    }
+                    
+                    if (part.image) {
+                        const maxWidth = 150;
+                        const maxHeight = 100;
+                        currentX += maxWidth + 5;
+                        currentLineHeight = Math.max(currentLineHeight, maxHeight + 10);
+                        continue;
+                    }
+                    
+                    if (part.link) {
+                        const textWidth = ctx.measureText(part.text).width;
+                        if (x >= currentX && x <= currentX + textWidth && 
+                            y >= currentY - FONT_SIZE * 0.2 && y <= currentY + FONT_SIZE * 0.8) {
+                            return part.link;
+                        }
+                    }
+                    
+                    currentX += ctx.measureText(part.text).width;
+                }
+                
+                return null;
+            };
+
             const renderMarkdownText = (ctx, text, x, y) => {
                 const parts = parseMarkdown(text);
                 let currentX = x;
                 let currentY = y + FONT_SIZE * 0.8;
                 const lineHeight = FONT_SIZE * 1.4;
+                let currentLineHeight = lineHeight;
                 
                 parts.forEach(part => {
                     if (part.text === '\n') {
-                        currentY += lineHeight;
+                        currentY += currentLineHeight;
                         currentX = x;
+                        currentLineHeight = lineHeight;
                         return;
                     }
                     
@@ -841,9 +907,9 @@
                             }
                             
                             ctx.drawImage(img, currentX, currentY, width, height);
+                            currentX += width + 5; // Add small spacing between inline images
+                            currentLineHeight = Math.max(currentLineHeight, height + 10); // Adjust line height for images
                         }
-                        currentY += 110;
-                        currentX = x;
                         return;
                     }
                     
@@ -854,17 +920,10 @@
                     if (part.heading) {
                         const headingSizes = [24, 20, 18, 16, 14, 12];
                         const headingSize = headingSizes[part.heading - 1] || 12;
-                        ctx.font = `700 ${headingSize}px Inter`;
-                        ctx.fillStyle = getCssVar('--accent');
+                        ctx.font = `700 ${headingSize}px sans-serif`;
+                        ctx.fillStyle = getCssVar('--node-text');
                     }
-                    // Handle code blocks
-                    else if (part.codeBlock) {
-                        ctx.font = `500 ${FONT_SIZE - 1}px monospace`;
-                        ctx.fillStyle = 'rgba(128,128,128,0.2)';
-                        const textWidth = ctx.measureText(part.text).width;
-                        ctx.fillRect(currentX - 4, currentY - FONT_SIZE + 2, textWidth + 8, FONT_SIZE + 4);
-                        ctx.fillStyle = getCssVar('--accent');
-                    }
+
                     // Handle regular formatting
                     else {
                         let fontWeight = '500';
@@ -879,20 +938,18 @@
                             fontStyle = 'italic ';
                         }
                         
-                        ctx.font = `${fontStyle}${fontWeight} ${FONT_SIZE}px Inter`;
+                        ctx.font = `${fontStyle}${fontWeight} ${FONT_SIZE}px sans-serif`;
                         
                         if (part.code) {
                             ctx.font = `500 ${FONT_SIZE}px monospace`;
-                            ctx.fillStyle = 'rgba(128,128,128,0.2)';
-                            const textWidth = ctx.measureText(part.text).width;
-                            ctx.fillRect(currentX - 2, currentY - FONT_SIZE + 2, textWidth + 4, FONT_SIZE + 4);
-                            ctx.fillStyle = getCssVar('--accent');
+                            ctx.fillStyle = '#22c55e';
                         }
                         if (part.link) {
                             ctx.fillStyle = '#0066cc';
+                            ctx.textDecoration = 'underline';
                         }
                         if (part.blockquote) {
-                            ctx.fillStyle = '#666666';
+                            ctx.fillStyle = '#ec4899';
                         }
                         if (part.hr) {
                             ctx.fillStyle = '#cccccc';
@@ -912,15 +969,9 @@
                         ctx.stroke();
                     }
                     
-                    // Handle underline for links
+                    // Reset text decoration
                     if (part.link) {
-                        const width = ctx.measureText(part.text).width;
-                        ctx.strokeStyle = ctx.fillStyle;
-                        ctx.lineWidth = 1;
-                        ctx.beginPath();
-                        ctx.moveTo(currentX, currentY + 2);
-                        ctx.lineTo(currentX + width, currentY + 2);
-                        ctx.stroke();
+                        ctx.textDecoration = 'none';
                     }
                     
                     currentX += ctx.measureText(part.text).width;
@@ -933,21 +984,23 @@
                 let maxWidth = 0;
                 let totalHeight = 0;
                 let currentLineWidth = 0;
+                let currentLineHeight = FONT_SIZE * 1.4;
                 const lineHeight = FONT_SIZE * 1.4;
                 
                 parts.forEach(part => {
                     if (part.text === '\n') {
                         maxWidth = Math.max(maxWidth, currentLineWidth);
                         currentLineWidth = 0;
-                        totalHeight += lineHeight;
+                        totalHeight += currentLineHeight;
+                        currentLineHeight = lineHeight;
                         return;
                     }
                     
                     // Handle images
                     if (part.image) {
-                        maxWidth = Math.max(maxWidth, 150);
-                        totalHeight += 110;
-                        currentLineWidth = 0;
+                        maxWidth = Math.max(maxWidth, currentLineWidth, 150); // Image width
+                        currentLineWidth = 0; // Reset for next content
+                        currentLineHeight = Math.max(currentLineHeight, 110); // Image height + padding
                         return;
                     }
                     
@@ -957,12 +1010,9 @@
                     if (part.heading) {
                         const headingSizes = [24, 20, 18, 16, 14, 12];
                         const headingSize = headingSizes[part.heading - 1] || 12;
-                        ctx.font = `700 ${headingSize}px Inter`;
+                        ctx.font = `700 ${headingSize}px sans-serif`;
                     }
-                    // Handle code blocks
-                    else if (part.codeBlock) {
-                        ctx.font = `500 ${FONT_SIZE - 1}px monospace`;
-                    }
+
                     // Handle regular formatting
                     else {
                         let fontWeight = '500';
@@ -980,7 +1030,7 @@
                         if (part.code) {
                             ctx.font = `500 ${FONT_SIZE}px monospace`;
                         } else {
-                            ctx.font = `${fontStyle}${fontWeight} ${FONT_SIZE}px Inter`;
+                            ctx.font = `${fontStyle}${fontWeight} ${FONT_SIZE}px sans-serif`;
                         }
                     }
                     
@@ -989,32 +1039,72 @@
                 });
                 
                 maxWidth = Math.max(maxWidth, currentLineWidth, 80);
-                totalHeight = totalHeight + lineHeight;
+                totalHeight = totalHeight + currentLineHeight;
                 
                 return { width: maxWidth, height: totalHeight };
             };
 
             const parseMarkdown = (text) => {
-                const lines = text.split('\n');
+                // First handle multi-line code blocks (but not in blockquotes)
+                let processedText = text;
+                const codeBlockRegex = /```([\s\S]*?)```/g;
+                const codeBlocks = [];
+                let match;
+                
+                while ((match = codeBlockRegex.exec(text)) !== null) {
+                    // Check if this code block is inside a blockquote
+                    const beforeMatch = text.substring(0, match.index);
+                    const lines = beforeMatch.split('\n');
+                    const lastLine = lines[lines.length - 1];
+                    
+                    // If the line starts with '>', it's in a blockquote, skip it
+                    if (lastLine.trim().startsWith('>')) {
+                        continue;
+                    }
+                    
+                    const placeholder = `__CODEBLOCK_${codeBlocks.length}__`;
+                    codeBlocks.push(match[1]);
+                    processedText = processedText.replace(match[0], placeholder);
+                }
+                
+                const lines = processedText.split('\n');
                 const parts = [];
                 
                 for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
                     let line = lines[lineIndex];
+                    
+                    // Check for code block placeholders
+                    const codeBlockMatch = line.match(/__CODEBLOCK_(\d+)__/);
+                    if (codeBlockMatch) {
+                        const blockIndex = parseInt(codeBlockMatch[1]);
+                        const codeContent = codeBlocks[blockIndex];
+                        const codeLines = codeContent.split('\n');
+                        
+                        for (let i = 0; i < codeLines.length; i++) {
+                            parts.push({ text: codeLines[i], bold: false, italic: false, code: true, strikethrough: false, blockquote: false });
+                            if (i < codeLines.length - 1) {
+                                parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                            }
+                        }
+                        
+                        if (lineIndex < lines.length - 1) parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                        continue;
+                    }
                     
                     // Handle headings
                     const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
                     if (headingMatch) {
                         const level = headingMatch[1].length;
                         const headingText = headingMatch[2];
-                        parts.push({ text: headingText, bold: false, italic: false, code: false, strikethrough: false, heading: level });
-                        if (lineIndex < lines.length - 1) parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false });
+                        parts.push({ text: headingText, bold: false, italic: false, code: false, strikethrough: false, blockquote: false, heading: level });
+                        if (lineIndex < lines.length - 1) parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
                         continue;
                     }
                     
                     // Handle horizontal rule
                     if (line.trim() === '---') {
-                        parts.push({ text: '───────────────', bold: false, italic: false, code: false, strikethrough: false, hr: true });
-                        if (lineIndex < lines.length - 1) parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false });
+                        parts.push({ text: '───────────────', bold: false, italic: false, code: false, strikethrough: false, blockquote: false, hr: true });
+                        if (lineIndex < lines.length - 1) parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
                         continue;
                     }
                     
@@ -1024,7 +1114,7 @@
                         const level = blockquoteMatch[1].length;
                         const quoteText = blockquoteMatch[2];
                         const indent = '  '.repeat(level - 1);
-                        parts.push({ text: indent + '▎ ' + quoteText, bold: false, italic: true, code: false, strikethrough: false, blockquote: level });
+                        parts.push({ text: indent + '▎ ' + quoteText, bold: false, italic: false, code: false, strikethrough: false, blockquote: level });
                         if (lineIndex < lines.length - 1) parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false });
                         continue;
                     }
@@ -1034,8 +1124,8 @@
                     if (unorderedListMatch) {
                         const indent = unorderedListMatch[1];
                         const listText = unorderedListMatch[2];
-                        parts.push({ text: indent + '• ' + listText, bold: false, italic: false, code: false, strikethrough: false, list: true });
-                        if (lineIndex < lines.length - 1) parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false });
+                        parts.push({ text: indent + '• ' + listText, bold: false, italic: false, code: false, strikethrough: false, blockquote: false, list: true });
+                        if (lineIndex < lines.length - 1) parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
                         continue;
                     }
                     
@@ -1045,36 +1135,23 @@
                         const indent = orderedListMatch[1];
                         const number = orderedListMatch[2];
                         const listText = orderedListMatch[3];
-                        parts.push({ text: indent + number + '. ' + listText, bold: false, italic: false, code: false, strikethrough: false, list: true });
-                        if (lineIndex < lines.length - 1) parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false });
+                        parts.push({ text: indent + number + '. ' + listText, bold: false, italic: false, code: false, strikethrough: false, blockquote: false, list: true });
+                        if (lineIndex < lines.length - 1) parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
                         continue;
                     }
                     
-                    // Handle code blocks
-                    if (line.trim().startsWith('```')) {
-                        const language = line.trim().substring(3);
-                        let codeContent = '';
-                        lineIndex++;
-                        while (lineIndex < lines.length && !lines[lineIndex].trim().startsWith('```')) {
-                            codeContent += lines[lineIndex] + '\n';
-                            lineIndex++;
-                        }
-                        if (codeContent.endsWith('\n')) codeContent = codeContent.slice(0, -1);
-                        parts.push({ text: codeContent, bold: false, italic: false, code: true, strikethrough: false, codeBlock: true, language });
-                        if (lineIndex < lines.length - 1) parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false });
-                        continue;
-                    }
+
                     
                     // Parse inline markdown for regular lines
                     const inlineParts = parseInlineMarkdown(line);
                     parts.push(...inlineParts);
                     
                     if (lineIndex < lines.length - 1) {
-                        parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false });
+                        parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
                     }
                 }
                 
-                return parts.length ? parts : [{ text: text, bold: false, italic: false, code: false, strikethrough: false }];
+                return parts.length ? parts : [{ text: text, bold: false, italic: false, code: false, strikethrough: false, blockquote: false }];
             };
             
             const parseInlineMarkdown = (text) => {
@@ -1086,9 +1163,9 @@
                     // Handle links [text](url)
                     const linkMatch = text.substr(i).match(/^\[([^\]]+)\]\(([^)]+)\)/);
                     if (linkMatch) {
-                        if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false });
+                        if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
                         current = '';
-                        parts.push({ text: linkMatch[1], bold: false, italic: false, code: false, strikethrough: false, link: linkMatch[2] });
+                        parts.push({ text: linkMatch[1], bold: false, italic: false, code: false, strikethrough: false, blockquote: false, link: linkMatch[2] });
                         i += linkMatch[0].length;
                         continue;
                     }
@@ -1096,86 +1173,141 @@
                     // Handle images ![alt](url)
                     const imageMatch = text.substr(i).match(/^!\[([^\]]*)\]\(([^)]+)\)/);
                     if (imageMatch) {
-                        if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false });
+                        if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
                         current = '';
-                        parts.push({ text: '', bold: false, italic: false, code: false, strikethrough: false, image: imageMatch[2], alt: imageMatch[1] });
+                        parts.push({ text: '', bold: false, italic: false, code: false, strikethrough: false, blockquote: false, image: imageMatch[2], alt: imageMatch[1] });
                         i += imageMatch[0].length;
                         continue;
                     }
                     
                     // Handle bold and italic ***text***
                     if (text.substr(i, 3) === '***') {
-                        if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false });
-                        current = '';
-                        i += 3;
-                        while (i < text.length && text.substr(i, 3) !== '***') {
+                        let foundClosing = false;
+                        let tempCurrent = '';
+                        let j = i + 3;
+                        
+                        // Look for closing ***
+                        while (j < text.length - 2 && text.substr(j, 3) !== '***') {
+                            tempCurrent += text[j];
+                            j++;
+                        }
+                        
+                        if (j < text.length - 2 && text.substr(j, 3) === '***' && tempCurrent) {
+                            // Found proper closing ***
+                            if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                            parts.push({ text: tempCurrent, bold: true, italic: true, code: false, strikethrough: false, blockquote: false });
+                            current = '';
+                            i = j + 3;
+                        } else {
+                            // No closing *** found, treat as regular text
                             current += text[i];
                             i++;
                         }
-                        if (current) parts.push({ text: current, bold: true, italic: true, code: false, strikethrough: false });
-                        current = '';
-                        i += 3;
                     }
                     // Handle bold **text**
                     else if (text.substr(i, 2) === '**') {
-                        if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false });
-                        current = '';
-                        i += 2;
-                        while (i < text.length && text.substr(i, 2) !== '**') {
+                        let foundClosing = false;
+                        let tempCurrent = '';
+                        let j = i + 2;
+                        
+                        // Look for closing **
+                        while (j < text.length - 1 && text.substr(j, 2) !== '**') {
+                            tempCurrent += text[j];
+                            j++;
+                        }
+                        
+                        if (j < text.length - 1 && text.substr(j, 2) === '**' && tempCurrent) {
+                            // Found proper closing **
+                            if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                            parts.push({ text: tempCurrent, bold: true, italic: false, code: false, strikethrough: false, blockquote: false });
+                            current = '';
+                            i = j + 2;
+                        } else {
+                            // No closing ** found, treat as regular text
                             current += text[i];
                             i++;
                         }
-                        if (current) parts.push({ text: current, bold: true, italic: false, code: false, strikethrough: false });
-                        current = '';
-                        i += 2;
                     }
                     // Handle italic *text* or _text_
                     else if ((text[i] === '*' || text[i] === '_') && text[i-1] !== text[i] && text[i+1] !== text[i]) {
                         const marker = text[i];
-                        if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false });
-                        current = '';
-                        i++;
-                        while (i < text.length && text[i] !== marker) {
+                        let foundClosing = false;
+                        let tempCurrent = '';
+                        let j = i + 1;
+                        
+                        // Look for closing marker
+                        while (j < text.length && text[j] !== marker) {
+                            tempCurrent += text[j];
+                            j++;
+                        }
+                        
+                        if (j < text.length && text[j] === marker && tempCurrent) {
+                            // Found proper closing marker
+                            if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                            parts.push({ text: tempCurrent, bold: false, italic: true, code: false, strikethrough: false, blockquote: false });
+                            current = '';
+                            i = j + 1;
+                        } else {
+                            // No closing marker found, treat as regular text
                             current += text[i];
                             i++;
                         }
-                        if (current) parts.push({ text: current, bold: false, italic: true, code: false, strikethrough: false });
-                        current = '';
-                        i++;
                     }
-                    // Handle inline code `text`
-                    else if (text[i] === '`') {
-                        if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false });
-                        current = '';
-                        i++;
-                        while (i < text.length && text[i] !== '`') {
+                    // Handle triple backtick inline code ```text```
+                    else if (text.substr(i, 3) === '```') {
+                        let tempCurrent = '';
+                        let j = i + 3;
+                        
+                        // Look for closing ```
+                        while (j < text.length - 2 && text.substr(j, 3) !== '```') {
+                            tempCurrent += text[j];
+                            j++;
+                        }
+                        
+                        if (j < text.length - 2 && text.substr(j, 3) === '```' && tempCurrent) {
+                            // Found proper closing ```
+                            if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                            parts.push({ text: tempCurrent, bold: false, italic: false, code: true, strikethrough: false, blockquote: false });
+                            current = '';
+                            i = j + 3;
+                        } else {
+                            // No closing ``` found, treat as regular text
                             current += text[i];
                             i++;
                         }
-                        if (current) parts.push({ text: current, bold: false, italic: false, code: true, strikethrough: false });
-                        current = '';
-                        i++;
                     }
+
                     // Handle strikethrough ~~text~~
                     else if (text.substr(i, 2) === '~~') {
-                        if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false });
-                        current = '';
-                        i += 2;
-                        while (i < text.length && text.substr(i, 2) !== '~~') {
+                        let foundClosing = false;
+                        let tempCurrent = '';
+                        let j = i + 2;
+                        
+                        // Look for closing ~~
+                        while (j < text.length - 1 && text.substr(j, 2) !== '~~') {
+                            tempCurrent += text[j];
+                            j++;
+                        }
+                        
+                        if (j < text.length - 1 && text.substr(j, 2) === '~~' && tempCurrent) {
+                            // Found proper closing ~~
+                            if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                            parts.push({ text: tempCurrent, bold: false, italic: false, code: false, strikethrough: true, blockquote: false });
+                            current = '';
+                            i = j + 2;
+                        } else {
+                            // No closing ~~ found, treat as regular text
                             current += text[i];
                             i++;
                         }
-                        if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: true });
-                        current = '';
-                        i += 2;
                     } else {
                         current += text[i];
                         i++;
                     }
                 }
                 
-                if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false });
-                return parts.length ? parts : [{ text: text, bold: false, italic: false, code: false, strikethrough: false }];
+                if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                return parts.length ? parts : [{ text: text, bold: false, italic: false, code: false, strikethrough: false, blockquote: false }];
             };
 
             // --- Actions ---
