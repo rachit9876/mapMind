@@ -18,9 +18,9 @@
 
         /* Design tokens via CSS variables (light/dark) */
         :root {
-            --bg: #f3f4f6;
-            --dot: rgba(0, 0, 0, 0.3); /* black @ 30% */
-            --line: #9ca3af; /* gray-400 */
+            --bg: #d1d5db;
+            --dot: #000000; /* pure black */
+            --line: #000000; /* pure black */
             --node-fill: #ffffff;
             --node-border: #e5e7eb; /* gray-200 */
             --node-text: #111827; /* gray-900 */
@@ -31,7 +31,7 @@
         }
 
         html.dark {
-            --bg: #0b1220;
+            --bg: #000000;
             --dot: rgba(255, 255, 255, 0.2);
             --line: #4b5563; /* gray-600 */
             --node-fill: #0f172a; /* slate-900 */
@@ -47,7 +47,12 @@
         .dot-background {
             background-color: var(--bg);
             background-image: radial-gradient(var(--dot) 2px, transparent 2px);
-            background-size: 100px 100px;
+            background-size: 80px 80px;
+        }
+
+        .no-dots {
+            background-color: var(--bg);
+            background-image: none;
         }
 
         #mindMapCanvas {
@@ -135,6 +140,14 @@
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-gray-700 dark:text-gray-200"><path fill-rule="evenodd" d="M10 3.75a6.25 6.25 0 1 1 0 12.5 6.25 6.25 0 0 1 0-12.5Zm0 1.5a4.75 4.75 0 1 0 0 9.5 4.75 4.75 0 0 0 0-9.5ZM21 20.25a.75.75 0 0 1-1.06 0l-4.22-4.22a8.5 8.5 0 1 1 1.06-1.06l4.22 4.22a.75.75 0 0 1 0 1.06ZM10.75 6.5a.75.75 0 0 0-1.5 0V9.25H6.5a.75.75 0 0 0 0 1.5h2.75V13.5a.75.75 0 0 0 1.5 0V10.75H13.5a.75.75 0 0 0 0-1.5h-2.75V6.5Z" clip-rule="evenodd"/></svg>
             </button>
 
+            <button id="undoBtn" class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-700 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed" title="Undo (Ctrl + Z)" disabled>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-gray-700 dark:text-gray-200"><path fill-rule="evenodd" d="M9.53 2.47a.75.75 0 0 1 0 1.06L4.81 8.25H15a6.75 6.75 0 0 1 0 13.5h-3a.75.75 0 0 1 0-1.5h3a5.25 5.25 0 1 0 0-10.5H4.81l4.72 4.72a.75.75 0 1 1-1.06 1.06l-6-6a.75.75 0 0 1 0-1.06l6-6a.75.75 0 0 1 1.06 0Z" clip-rule="evenodd"/></svg>
+            </button>
+
+            <button id="redoBtn" class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-700 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed" title="Redo (Ctrl + Y)" disabled>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-gray-700 dark:text-gray-200"><path fill-rule="evenodd" d="M14.47 2.47a.75.75 0 0 1 1.06 0l6 6a.75.75 0 0 1 0 1.06l-6 6a.75.75 0 1 1-1.06-1.06l4.72-4.72H9a5.25 5.25 0 1 0 0 10.5h3a.75.75 0 0 1 0 1.5H9a6.75 6.75 0 0 1 0-13.5h10.19L14.47 3.53a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd"/></svg>
+            </button>
+
             <button id="fitViewBtn" class="inline-flex items-center gap-2 bg-gray-100 dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700 text-gray-800 dark:text-gray-100 font-medium py-2 px-3 md:px-4 rounded-lg border border-gray-200 dark:border-slate-700 shadow-sm transition-colors" title="Fit to view">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M4.5 4.5h6a.75.75 0 0 0 0-1.5h-6A2.25 2.25 0 0 0 2.25 5.25v6a.75.75 0 0 0 1.5 0v-6A.75.75 0 0 1 4.5 4.5Zm9 0h6a.75.75 0 0 1 .75.75v6a.75.75 0 0 0 1.5 0v-6A2.25 2.25 0 0 0 19.5 3h-6a.75.75 0 0 0 0 1.5Zm7.5 9a.75.75 0 0 0-1.5 0v6a.75.75 0 0 1-.75.75h-6a.75.75 0 0 0 0 1.5h6A2.25 2.25 0 0 0 21.75 19.5v-6Zm-18 6v-6a.75.75 0 0 0-1.5 0v6A2.25 2.25 0 0 0 4.5 21.75h6a.75.75 0 0 0 0-1.5h-6a.75.75 0 0 1-.75-.75Z"/></svg>
                 <span class="hidden md:inline">Fit</span>
@@ -151,12 +164,18 @@
             </button>
 
             <button id="curvedLinesToggle" class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-3 md:px-4 rounded-lg border border-indigo-600 shadow-sm transition-colors" title="Toggle curved lines">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M3 12c0-.75.75-1.5 1.5-1.5s1.5.75 1.5 1.5-.75 1.5-1.5 1.5S3 12.75 3 12zm6-3c0-.75.75-1.5 1.5-1.5s1.5.75 1.5 1.5-.75 1.5-1.5 1.5S9 9.75 9 9zm6 6c0-.75.75-1.5 1.5-1.5s1.5.75 1.5 1.5-.75 1.5-1.5 1.5-1.5-.75-1.5-1.5z"/></svg>
-                <span class="hidden md:inline">Curves</span>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M3.75 12a.75.75 0 0 1 .75-.75h15a.75.75 0 0 1 0 1.5H4.5a.75.75 0 0 1-.75-.75Z"/><path d="M3.75 6a.75.75 0 0 1 .75-.75h15a.75.75 0 0 1 0 1.5H4.5A.75.75 0 0 1 3.75 6ZM3.75 18a.75.75 0 0 1 .75-.75h15a.75.75 0 0 1 0 1.5H4.5a.75.75 0 0 1-.75-.75Z"/></svg>
+                <span class="hidden md:inline">Lines</span>
+            </button>
+
+            <button id="dotsToggle" class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-3 md:px-4 rounded-lg border border-indigo-600 shadow-sm transition-colors" title="Toggle grid dots">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M4.5 4.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 4.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM19.5 4.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM4.5 12a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 12a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM19.5 12a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM4.5 19.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 19.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM19.5 19.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Z"/></svg>
+                <span class="hidden md:inline">Grid</span>
             </button>
 
             <button id="themeToggle" class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-700 shadow-sm transition-colors" title="Toggle theme">
-                <svg id="iconSun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-gray-700 dark:text-gray-200"><path d="M12 18.25a6.25 6.25 0 1 0 0-12.5 6.25 6.25 0 0 0 0 12.5ZM12 1.5a.75.75 0 0 1 .75.75v2a.75.75 0 1 1-1.5 0v-2A.75.75 0 0 1 12 1.5Zm0 17.5a.75.75 0 0 1 .75.75v2a.75.75 0 1 1-1.5 0v-2a.75.75 0 0 1 .75-.75ZM22.5 12a.75.75 0 0 1-.75.75h-2a.75.75 0 1 1 0-1.5h2a.75.75 0 0 1 .75.75ZM5.25 12a.75.75 0 0 1-.75.75h-2a.75.75 0 1 1 0-1.5h2a.75.75 0 0 1 .75.75Zm13.01 7.04a.75.75 0 0 1-1.06 0l-1.42-1.42a.75.75 0 1 1 1.06-1.06l1.42 1.42a.75.75 0 0 1 0 1.06Zm-10.5-10.5a.75.75 0 0 1-1.06 0L5.28 7.12a.75.75 0 1 1 1.06-1.06l1.42 1.42a.75.75 0 0 1 0 1.06Zm10.5-6.56a.75.75 0 0 1 0 1.06l-1.42 1.42a.75.75 0 0 1-1.06-1.06l1.42-1.42a.75.75 0 0 1 1.06 0Zm-10.5 10.5a.75.75 0 0 1 0 1.06L6.79 16.0a.75.75 0 1 1-1.06-1.06l1.42-1.42a.75.75 0 0 1 1.06 0Z"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-gray-700 dark:text-gray-200 dark:hidden"><path d="M12 2.25a.75.75 0 0 1 .75.75v2.25a.75.75 0 0 1-1.5 0V3a.75.75 0 0 1 .75-.75ZM7.5 12a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM18.894 6.166a.75.75 0 0 0-1.06-1.06l-1.591 1.59a.75.75 0 1 0 1.06 1.061l1.591-1.59ZM21.75 12a.75.75 0 0 1-.75.75h-2.25a.75.75 0 0 1 0-1.5H21a.75.75 0 0 1 .75.75ZM17.834 18.894a.75.75 0 0 0 1.06-1.06l-1.59-1.591a.75.75 0 1 0-1.061 1.06l1.59 1.591ZM12 18a.75.75 0 0 1 .75.75V21a.75.75 0 0 1-1.5 0v-2.25A.75.75 0 0 1 12 18ZM7.758 17.303a.75.75 0 0 0-1.061-1.06l-1.591 1.59a.75.75 0 0 0 1.06 1.061l1.591-1.59ZM6 12a.75.75 0 0 1-.75.75H3a.75.75 0 0 1 0-1.5h2.25A.75.75 0 0 1 6 12ZM6.697 7.757a.75.75 0 0 0 1.06-1.06l-1.59-1.591a.75.75 0 0 0-1.061 1.06l1.59 1.591Z"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-gray-700 dark:text-gray-200 hidden dark:block"><path fill-rule="evenodd" d="M9.528 1.718a.75.75 0 0 1 .162.819A8.97 8.97 0 0 0 9 6a9 9 0 0 0 9 9 8.97 8.97 0 0 0 3.463-.69.75.75 0 0 1 .981.98 10.503 10.503 0 0 1-9.694 6.46c-5.799 0-10.5-4.701-10.5-10.5 0-4.368 2.667-8.112 6.46-9.694a.75.75 0 0 1 .818.162Z" clip-rule="evenodd"/></svg>
             </button>
 
             <button id="downloadBtn" class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-700 shadow-sm transition-colors" title="Download">
@@ -225,6 +244,8 @@
             const resetPositionBtn = document.getElementById('resetPositionBtn');
             const curvedLinesToggle = document.getElementById('curvedLinesToggle');
             let curvedLinesEnabled = true;
+            const dotsToggle = document.getElementById('dotsToggle');
+            let dotsEnabled = true;
             const themeToggle = document.getElementById('themeToggle');
             const zoomInBtn = document.getElementById('zoomInBtn');
             const zoomOutBtn = document.getElementById('zoomOutBtn');
@@ -243,6 +264,8 @@
             const downloadBtn = document.getElementById('downloadBtn');
             const openBtn = document.getElementById('openBtn');
             const fileInput = document.getElementById('fileInput');
+            const undoBtn = document.getElementById('undoBtn');
+            const redoBtn = document.getElementById('redoBtn');
 
             // --- State Management ---
             let nodes = [];
@@ -257,6 +280,61 @@
             let cursorPosition = 0;
             let multiSelectedNodes = [];
             let selectedConnectionId = null;
+            let history = [];
+            let historyIndex = -1;
+            const maxHistorySize = 50;
+
+            // --- History Management ---
+            function saveState() {
+                const state = {
+                    nodes: JSON.parse(JSON.stringify(nodes)),
+                    nextNodeId,
+                    zoomScale,
+                    panX,
+                    panY
+                };
+                historyIndex++;
+                history = history.slice(0, historyIndex);
+                history.push(state);
+                if (history.length > maxHistorySize) {
+                    history.shift();
+                    historyIndex--;
+                }
+                updateUndoRedoButtons();
+            }
+
+            function undo() {
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    restoreState(history[historyIndex]);
+                    updateUndoRedoButtons();
+                }
+            }
+
+            function redo() {
+                if (historyIndex < history.length - 1) {
+                    historyIndex++;
+                    restoreState(history[historyIndex]);
+                    updateUndoRedoButtons();
+                }
+            }
+
+            function restoreState(state) {
+                nodes = JSON.parse(JSON.stringify(state.nodes));
+                nextNodeId = state.nextNodeId;
+                zoomScale = state.zoomScale;
+                panX = state.panX;
+                panY = state.panY;
+                selectedNodeId = null;
+                multiSelectedNodes = [];
+                editingNodeId = null;
+                draw();
+            }
+
+            function updateUndoRedoButtons() {
+                undoBtn.disabled = historyIndex <= 0;
+                redoBtn.disabled = historyIndex >= history.length - 1;
+            }
 
             // --- Canvas and Drawing Logic ---
 
@@ -273,7 +351,7 @@
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 
                 // Update background dot size based on zoom
-                const dotSize = 20 * zoomScale;
+                const dotSize = 80 * zoomScale;
                 canvas.parentElement.style.backgroundSize = `${dotSize}px ${dotSize}px`;
                 canvas.parentElement.style.backgroundPosition = `${panX % dotSize}px ${panY % dotSize}px`;
                 
@@ -342,12 +420,16 @@
                     const isSelected = (node.id === selectedNodeId);
                     const isMultiSelected = multiSelectedNodes.includes(node.id);
                     const isDragged = (node.id === draggedNodeId);
-            ctx.fillStyle = colorNodeFill;
-            ctx.strokeStyle = isSelected ? colorSelected : (isMultiSelected ? colorMulti : (isDragged ? colorDrag : styles.getPropertyValue('--node-border').trim()));
-            ctx.lineWidth = isSelected ? 3 : (isMultiSelected ? 2.5 : (isDragged ? 2.5 : 1.5));
-            ctx.shadowColor = nodeShadow;
-            ctx.shadowBlur = 8;
-            ctx.shadowOffsetY = 2;
+                    
+                    // Set shadow properties
+                    ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+                    ctx.shadowBlur = 15;
+                    ctx.shadowOffsetX = 0;
+                    ctx.shadowOffsetY = 4;
+                    
+                    ctx.fillStyle = colorNodeFill;
+                    ctx.strokeStyle = isSelected ? colorSelected : (isMultiSelected ? colorMulti : (isDragged ? colorDrag : styles.getPropertyValue('--node-border').trim()));
+                    ctx.lineWidth = isSelected ? 3 : (isMultiSelected ? 2.5 : (isDragged ? 2.5 : 1.5));
                     
                     // Draw node rectangle
                     const padding = 15;
@@ -427,7 +509,9 @@
                     node.width = rectWidth;
                     node.height = rectHeight;
                     // Reset shadow for next operations
+                    ctx.shadowColor = 'transparent';
                     ctx.shadowBlur = 0;
+                    ctx.shadowOffsetX = 0;
                     ctx.shadowOffsetY = 0;
                 }
                 
@@ -559,6 +643,7 @@
 
             // Creates a new node and adds it to the mind map
             function createNode(x, y, text = 'New Node', parentId = null, autoEdit = false) {
+                saveState();
                 // Calculate initial dimensions
                 ctx.font = '16px "Inter", sans-serif';
                 const textWidth = ctx.measureText(text).width;
@@ -599,6 +684,7 @@
                 const nodeToDelete = nodes.find(n => n.id === nodeId);
                 if (!nodeToDelete) return;
 
+                saveState();
                 const nodesToDelete = [nodeId];
                 let queue = [...nodeToDelete.children];
 
@@ -631,6 +717,7 @@
                 const childNode = nodes.find(n => n.id === childId);
                 
                 if (parentNode && childNode) {
+                    saveState();
                     // Remove child from parent's children array
                     parentNode.children = parentNode.children.filter(id => id !== childId);
                     // Remove parent reference from child
@@ -812,6 +899,9 @@
 
             // Handle mouse up event to stop dragging
             canvas.addEventListener('mouseup', () => {
+                if (draggedNodeId !== null) {
+                    saveState();
+                }
                 draggedNodeId = null;
                 lastMouseX = undefined;
                 lastMouseY = undefined;
@@ -842,6 +932,22 @@
 
             // Handle keyboard input for editing and connections
             window.addEventListener('keydown', (e) => {
+                // Handle Ctrl+Z for undo
+                if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey && editingNodeId === null) {
+                    e.preventDefault();
+                    undo();
+                    return;
+                }
+                
+                // Handle Ctrl+Y or Ctrl+Shift+Z for redo
+                if (((e.ctrlKey || e.metaKey) && e.key === 'y') || ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'Z')) {
+                    if (editingNodeId === null) {
+                        e.preventDefault();
+                        redo();
+                        return;
+                    }
+                }
+                
                 // Handle Delete key for selected nodes
                 if (e.key === 'Delete' && editingNodeId === null && selectedNodeId !== null) {
                     e.preventDefault();
@@ -853,6 +959,7 @@
                 // Handle Enter for connecting nodes
                 if (e.key === 'Enter' && editingNodeId === null && multiSelectedNodes.length > 1) {
                         e.preventDefault();
+                        saveState();
                         // Connect all nodes in sequence
                         for (let i = 0; i < multiSelectedNodes.length - 1; i++) {
                             const parentNode = nodes.find(n => n.id === multiSelectedNodes[i]);
@@ -898,6 +1005,7 @@
                                 draw();
                             } else {
                                 // Regular Enter: Exit editing
+                                saveState();
                                 editingNodeId = null;
                                 textSelected = false;
                                 draw();
@@ -1020,6 +1128,27 @@
                 draw();
             });
 
+            // Toggle for dots visibility
+            dotsToggle.addEventListener('click', () => {
+                dotsEnabled = !dotsEnabled;
+                dotsToggle.classList.toggle('bg-indigo-600', dotsEnabled);
+                dotsToggle.classList.toggle('text-white', dotsEnabled);
+                dotsToggle.classList.toggle('border-indigo-600', dotsEnabled);
+                dotsToggle.classList.toggle('bg-gray-100', !dotsEnabled);
+                dotsToggle.classList.toggle('dark:bg-slate-800', !dotsEnabled);
+                dotsToggle.classList.toggle('text-gray-800', !dotsEnabled);
+                dotsToggle.classList.toggle('dark:text-gray-100', !dotsEnabled);
+                dotsToggle.classList.toggle('border-gray-200', !dotsEnabled);
+                dotsToggle.classList.toggle('dark:border-slate-700', !dotsEnabled);
+                if (dotsEnabled) {
+                    canvas.parentElement.classList.remove('no-dots');
+                    canvas.parentElement.classList.add('dot-background');
+                } else {
+                    canvas.parentElement.classList.remove('dot-background');
+                    canvas.parentElement.classList.add('no-dots');
+                }
+            });
+
             // --- Context Menu Actions ---
 
             menuCreateBtn.addEventListener('click', () => {
@@ -1093,6 +1222,13 @@
                 draw();
             }
             fitViewBtn.addEventListener('click', fitToView);
+
+            // Undo/Redo button handlers
+            undoBtn.addEventListener('click', undo);
+            redoBtn.addEventListener('click', redo);
+
+            // Save initial state
+            saveState();
 
             // Theme toggle (persist in localStorage)
             const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
