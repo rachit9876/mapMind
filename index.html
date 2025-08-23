@@ -114,6 +114,9 @@
             <button id="fitViewBtn" class="btn btn-secondary" title="Fit to View (F)">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4h4m12 4V4h-4M4 16v4h4m12-4v4h-4"></path></svg>
             </button>
+            <button id="importBtn" class="btn btn-secondary" title="Import">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-1m-4-8l4 4m0 0l4-4m-4 4V4"></path></svg>
+            </button>
             <button id="exportBtn" class="btn btn-secondary" title="Export">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
             </button>
@@ -131,15 +134,15 @@
 
     <div id="context-menu" class="absolute hidden z-30 rounded-lg shadow-lg w-48">
         <ul class="py-1">
-            <li id="menu-add-node" class="px-4 py-2 cursor-pointer">Add Node</li>
             <li id="menu-add-child" class="px-4 py-2 cursor-pointer">Add Child</li>
+            <li id="menu-add-node" class="px-4 py-2 cursor-pointer">Add Node</li>
             <li id="menu-connect" class="px-4 py-2 cursor-pointer">Connect</li>
             <li id="menu-delete-node" class="px-4 py-2 cursor-pointer">Delete Node</li>
             <li id="menu-disconnect" class="px-4 py-2 cursor-pointer">Disconnect</li>
         </ul>
     </div>
     
-    <input type="file" id="file-input" class="hidden" accept=".json,image/png">
+    <input type="file" id="file-input" class="hidden" accept=".rxt">
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -172,6 +175,7 @@
                 zoomOutBtn: document.getElementById('zoomOutBtn'),
                 zoomIndicator: document.getElementById('zoomIndicator'),
                 fitViewBtn: document.getElementById('fitViewBtn'),
+                importBtn: document.getElementById('importBtn'),
                 exportBtn: document.getElementById('exportBtn'),
                 themeToggle: document.getElementById('themeToggle'),
                 themeIconLight: document.getElementById('theme-icon-light'),
@@ -448,7 +452,9 @@
                 dom.undoBtn.addEventListener('click', undo);
                 dom.redoBtn.addEventListener('click', redo);
                 dom.themeToggle.addEventListener('click', toggleTheme);
-                dom.exportBtn.addEventListener('click', showExportMenu);
+                dom.importBtn.addEventListener('click', () => dom.fileInput.click());
+                dom.exportBtn.addEventListener('click', exportAsRXT);
+                dom.fileInput.addEventListener('change', importRXT);
 
                 window.addEventListener('resize', resizeCanvas);
                 window.addEventListener('keydown', onKeyDown);
@@ -456,6 +462,8 @@
             };
 
             const onMouseDown = (e) => {
+                if (e.button === 2) return; // Disable right-click drag
+                
                 hideContextMenu();
                 finishEditingNode();
                 const pos = getMousePos(e);
@@ -545,6 +553,10 @@
                 if (e.key === 'n') dom.addNodeBtn.click();
                 if (e.key === 'f') fitView();
                 if (e.key === 't') toggleTheme();
+                if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
+                    e.preventDefault();
+                    dom.fileInput.click();
+                }
                 if (e.key === 'Delete' || e.key === 'Backspace') {
                     if (state.selectedNodeId) {
                         deleteNode(state.selectedNodeId);
@@ -625,11 +637,69 @@
 
             const hideContextMenu = () => contextMenu.classList.add('hidden');
 
-            const showExportMenu = () => {
-                // Simple export for now, can be expanded with a modal
-                const choice = prompt("Export as (json/png):");
-                if (choice === 'json') exportAsJSON();
-                if (choice === 'png') exportAsPNG();
+            const importRXT = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const data = JSON.parse(event.target.result);
+                        state.nodes = data.nodes || [];
+                        state.nextNodeId = data.metadata?.nextNodeId || 1;
+                        if (data.settings) {
+                            state.zoom = data.settings.zoom || 1;
+                            state.pan = data.settings.pan || { x: 0, y: 0 };
+                            if (data.settings.theme) {
+                                const isDark = data.settings.theme === 'dark';
+                                document.documentElement.classList.toggle('dark', isDark);
+                                dom.themeIconLight.classList.toggle('hidden', isDark);
+                                dom.themeIconDark.classList.toggle('hidden', !isDark);
+                            }
+                        }
+                        state.selectedNodeId = null;
+                        dom.zoomIndicator.textContent = `${Math.round(state.zoom * 100)}%`;
+                        saveState();
+                        requestRedraw();
+                    } catch (error) {
+                        alert('Invalid file format');
+                    }
+                };
+                reader.readAsText(file);
+                e.target.value = '';
+            };
+
+            const exportAsRXT = () => {
+                const now = new Date();
+                const timestamp = `${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                
+                const exportData = {
+                    timestamp: now.toISOString(),
+                    settings: {
+                        zoom: state.zoom,
+                        pan: state.pan,
+                        theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+                    },
+                    nodes: state.nodes,
+                    preview: {
+                        canvasWidth: canvas.clientWidth,
+                        canvasHeight: canvas.clientHeight,
+                        nodeCount: state.nodes.length
+                    },
+                    metadata: {
+                        nextNodeId: state.nextNodeId,
+                        selectedNodeId: state.selectedNodeId,
+                        version: '1.0'
+                    }
+                };
+                
+                const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/octet-stream' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `mindmap-${timestamp}.rxt`;
+                a.click();
+                URL.revokeObjectURL(url);
             };
 
             const toggleTheme = () => {
@@ -683,23 +753,7 @@
                 requestRedraw();
             };
 
-            const exportAsJSON = () => {
-                const data = JSON.stringify({ nodes: state.nodes, nextNodeId: state.nextNodeId }, null, 2);
-                const blob = new Blob([data], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'mindmap.json';
-                a.click();
-                URL.revokeObjectURL(url);
-            };
 
-            const exportAsPNG = () => {
-                const link = document.createElement('a');
-                link.download = 'mindmap.png';
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-            };
 
             // --- Helpers ---
             const getMousePos = (e) => ({ x: e.clientX, y: e.clientY - dom.addNodeBtn.closest('header').offsetHeight });
