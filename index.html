@@ -120,6 +120,10 @@
             <button id="exportBtn" class="btn btn-secondary" title="Export">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
             </button>
+            <button id="markdownToggle" class="btn btn-secondary" title="Toggle Markdown Mode (M)">
+                <svg id="markdown-icon-off" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                <svg id="markdown-icon-on" class="w-5 h-5 hidden" fill="currentColor" viewBox="0 0 24 24"><path d="M22.269 19.385c-.13-.151-.297-.243-.485-.243h-3.039v-7.874l-2.255 2.885-.239.307-.238-.307-2.255-2.885v7.874h-3.04c-.187 0-.354.092-.485.243-.13.15-.202.35-.202.56 0 .21.072.41.202.56.131.151.298.243.485.243h3.04v1.125c0 .621.504 1.125 1.125 1.125s1.125-.504 1.125-1.125v-1.125h3.039c.187 0 .354-.092.485-.243.13-.15.202-.35.202-.56 0-.21-.072-.41-.202-.56zm-9.269-9.385h-3v7h-2l3 3 3-3h-2v-7h1z"/></svg>
+            </button>
             <button id="themeToggle" class="btn btn-secondary" title="Toggle Theme (T)">
                 <svg id="theme-icon-light" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0z"></path></svg>
                 <svg id="theme-icon-dark" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 0 1 8.646 3.646 9.003 9.003 0 0 0 12 21a9.003 9.003 0 0 0 8.354-5.646z"></path></svg>
@@ -165,6 +169,7 @@
                 history: [],
                 historyIndex: -1,
                 connecting: false,
+                markdownMode: false,
             };
 
             const dom = {
@@ -177,6 +182,9 @@
                 fitViewBtn: document.getElementById('fitViewBtn'),
                 importBtn: document.getElementById('importBtn'),
                 exportBtn: document.getElementById('exportBtn'),
+                markdownToggle: document.getElementById('markdownToggle'),
+                markdownIconOff: document.getElementById('markdown-icon-off'),
+                markdownIconOn: document.getElementById('markdown-icon-on'),
                 themeToggle: document.getElementById('themeToggle'),
                 themeIconLight: document.getElementById('theme-icon-light'),
                 themeIconDark: document.getElementById('theme-icon-dark'),
@@ -240,13 +248,16 @@
                     
                     if (node.id !== state.editingNodeId) {
                         ctx.fillStyle = getCssVar('--node-text');
-                        const lines = node.text.split('\n');
-                        const lineHeight = FONT_SIZE * 1.4;
-                        const startY = node.y + node.height / 2 - ((lines.length - 1) * lineHeight) / 2;
-                        
-                        lines.forEach((line, index) => {
-                            ctx.fillText(line, node.x + NODE_PADDING, startY + index * lineHeight);
-                        });
+                        if (state.markdownMode) {
+                            renderMarkdownText(ctx, node.text, node.x + NODE_PADDING, node.y + NODE_PADDING);
+                        } else {
+                            const lines = node.text.split('\n');
+                            const lineHeight = FONT_SIZE * 1.4;
+                            const startY = node.y + node.height / 2 - ((lines.length - 1) * lineHeight) / 2;
+                            lines.forEach((line, index) => {
+                                ctx.fillText(line, node.x + NODE_PADDING, startY + index * lineHeight);
+                            });
+                        }
                     }
                 }
             };
@@ -348,18 +359,29 @@
 
             const updateNodeDimensions = (node) => {
                 ctx.font = `500 ${FONT_SIZE}px Inter`;
-                const lines = node.text.split('\n');
-                const maxWidth = Math.max(...lines.map(line => ctx.measureText(line).width), 80);
-                const lineHeight = FONT_SIZE * 1.4;
-                node.width = maxWidth + NODE_PADDING * 1.5;
-                node.height = lines.length * lineHeight + NODE_PADDING * 2;
+                if (state.markdownMode) {
+                    const dimensions = measureMarkdownText(ctx, node.text);
+                    node.width = dimensions.width + NODE_PADDING * 2;
+                    node.height = dimensions.height + NODE_PADDING * 2;
+                } else {
+                    const lines = node.text.split('\n');
+                    const maxWidth = Math.max(...lines.map(line => ctx.measureText(line).width), 80);
+                    const lineHeight = FONT_SIZE * 1.4;
+                    node.width = maxWidth + NODE_PADDING * 1.5;
+                    node.height = lines.length * lineHeight + NODE_PADDING * 2;
+                }
             };
 
-            const autoResizeEditor = () => {
-                nodeEditor.style.height = 'auto';
-                nodeEditor.style.width = 'auto';
-                nodeEditor.style.height = nodeEditor.scrollHeight + 'px';
-                nodeEditor.style.width = Math.max(nodeEditor.scrollWidth, 100) + 'px';
+            const updateEditorSize = () => {
+                if (!state.editingNodeId) return;
+                const node = findNodeById(state.editingNodeId);
+                if (!node) return;
+                
+                const screenPos = worldToScreen(node.x, node.y);
+                nodeEditor.style.left = `${screenPos.x}px`;
+                nodeEditor.style.top = `${screenPos.y}px`;
+                nodeEditor.style.width = `${node.width * state.zoom}px`;
+                nodeEditor.style.height = `${node.height * state.zoom}px`;
             };
 
             const startEditingNode = (nodeId) => {
@@ -370,13 +392,11 @@
                 const screenPos = worldToScreen(node.x, node.y);
                 
                 nodeEditor.value = node.text;
-                nodeEditor.style.left = `${screenPos.x}px`;
-                nodeEditor.style.top = `${screenPos.y}px`;
                 nodeEditor.style.fontSize = `${FONT_SIZE * state.zoom}px`;
                 nodeEditor.style.padding = `${NODE_PADDING * state.zoom}px`;
                 nodeEditor.style.lineHeight = `${FONT_SIZE * 1.4 * state.zoom}px`;
                 nodeEditor.classList.remove('hidden');
-                autoResizeEditor();
+                updateEditorSize();
                 nodeEditor.focus();
                 nodeEditor.select();
                 requestRedraw();
@@ -425,13 +445,13 @@
                 });
                 
                 nodeEditor.addEventListener('input', () => {
-                    autoResizeEditor();
                     // Update node size in real-time
                     if (state.editingNodeId) {
                         const node = findNodeById(state.editingNodeId);
                         if (node) {
                             node.text = nodeEditor.value;
                             updateNodeDimensions(node);
+                            updateEditorSize();
                             requestRedraw();
                         }
                     }
@@ -451,6 +471,7 @@
                 dom.fitViewBtn.addEventListener('click', fitView);
                 dom.undoBtn.addEventListener('click', undo);
                 dom.redoBtn.addEventListener('click', redo);
+                dom.markdownToggle.addEventListener('click', toggleMarkdown);
                 dom.themeToggle.addEventListener('click', toggleTheme);
                 dom.importBtn.addEventListener('click', () => dom.fileInput.click());
                 dom.exportBtn.addEventListener('click', exportAsRXT);
@@ -552,6 +573,7 @@
                 }
                 if (e.key === 'n') dom.addNodeBtn.click();
                 if (e.key === 'f') fitView();
+                if (e.key === 'm') toggleMarkdown();
                 if (e.key === 't') toggleTheme();
                 if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
                     e.preventDefault();
@@ -711,6 +733,156 @@
                 requestRedraw();
             };
 
+            const toggleMarkdown = () => {
+                state.markdownMode = !state.markdownMode;
+                dom.markdownIconOff.classList.toggle('hidden', state.markdownMode);
+                dom.markdownIconOn.classList.toggle('hidden', !state.markdownMode);
+                localStorage.setItem('mindmap-markdown', state.markdownMode ? 'on' : 'off');
+                requestRedraw();
+            };
+
+            const renderMarkdownText = (ctx, text, x, y) => {
+                const parts = parseMarkdown(text);
+                let currentX = x;
+                let currentY = y + FONT_SIZE;
+                const lineHeight = FONT_SIZE * 1.4;
+                
+                parts.forEach(part => {
+                    const lines = part.text.split('\n');
+                    
+                    lines.forEach((line, lineIndex) => {
+                        if (lineIndex > 0) {
+                            currentY += lineHeight;
+                            currentX = x;
+                        }
+                        
+                        if (line) {
+                            ctx.save();
+                            ctx.fillStyle = getCssVar('--node-text');
+                            
+                            if (part.bold) ctx.font = `700 ${FONT_SIZE}px Inter`;
+                            else if (part.italic) ctx.font = `italic 500 ${FONT_SIZE}px Inter`;
+                            else ctx.font = `500 ${FONT_SIZE}px Inter`;
+                            
+                            if (part.code) {
+                                ctx.fillStyle = getCssVar('--accent');
+                                ctx.fillRect(currentX - 2, currentY - FONT_SIZE + 2, ctx.measureText(line).width + 4, FONT_SIZE + 4);
+                                ctx.fillStyle = getCssVar('--bg');
+                            }
+                            
+                            ctx.fillText(line, currentX, currentY);
+                            
+                            if (part.strikethrough) {
+                                const width = ctx.measureText(line).width;
+                                ctx.strokeStyle = getCssVar('--node-text');
+                                ctx.beginPath();
+                                ctx.moveTo(currentX, currentY - FONT_SIZE/4);
+                                ctx.lineTo(currentX + width, currentY - FONT_SIZE/4);
+                                ctx.stroke();
+                            }
+                            
+                            currentX += ctx.measureText(line).width;
+                            ctx.restore();
+                        }
+                    });
+                });
+            };
+
+            const measureMarkdownText = (ctx, text) => {
+                const parts = parseMarkdown(text);
+                let maxWidth = 0;
+                let totalHeight = 0;
+                let currentLineWidth = 0;
+                const lineHeight = FONT_SIZE * 1.4;
+                
+                parts.forEach(part => {
+                    const lines = part.text.split('\n');
+                    
+                    lines.forEach((line, lineIndex) => {
+                        if (lineIndex > 0) {
+                            maxWidth = Math.max(maxWidth, currentLineWidth);
+                            currentLineWidth = 0;
+                            totalHeight += lineHeight;
+                        }
+                        
+                        if (line) {
+                            ctx.save();
+                            if (part.bold) ctx.font = `700 ${FONT_SIZE}px Inter`;
+                            else if (part.italic) ctx.font = `italic 500 ${FONT_SIZE}px Inter`;
+                            else ctx.font = `500 ${FONT_SIZE}px Inter`;
+                            
+                            currentLineWidth += ctx.measureText(line).width;
+                            ctx.restore();
+                        }
+                    });
+                });
+                
+                maxWidth = Math.max(maxWidth, currentLineWidth, 80);
+                totalHeight = totalHeight || lineHeight;
+                
+                return { width: maxWidth, height: totalHeight };
+            };
+
+            const parseMarkdown = (text) => {
+                const parts = [];
+                let current = '';
+                let i = 0;
+                
+                while (i < text.length) {
+                    if (text.substr(i, 2) === '**') {
+                        if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false });
+                        current = '';
+                        i += 2;
+                        while (i < text.length && text.substr(i, 2) !== '**') {
+                            current += text[i];
+                            i++;
+                        }
+                        if (current) parts.push({ text: current, bold: true, italic: false, code: false, strikethrough: false });
+                        current = '';
+                        i += 2;
+                    } else if (text[i] === '*' && text[i-1] !== '*' && text[i+1] !== '*') {
+                        if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false });
+                        current = '';
+                        i++;
+                        while (i < text.length && text[i] !== '*') {
+                            current += text[i];
+                            i++;
+                        }
+                        if (current) parts.push({ text: current, bold: false, italic: true, code: false, strikethrough: false });
+                        current = '';
+                        i++;
+                    } else if (text[i] === '`') {
+                        if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false });
+                        current = '';
+                        i++;
+                        while (i < text.length && text[i] !== '`') {
+                            current += text[i];
+                            i++;
+                        }
+                        if (current) parts.push({ text: current, bold: false, italic: false, code: true, strikethrough: false });
+                        current = '';
+                        i++;
+                    } else if (text.substr(i, 2) === '~~') {
+                        if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false });
+                        current = '';
+                        i += 2;
+                        while (i < text.length && text.substr(i, 2) !== '~~') {
+                            current += text[i];
+                            i++;
+                        }
+                        if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: true });
+                        current = '';
+                        i += 2;
+                    } else {
+                        current += text[i];
+                        i++;
+                    }
+                }
+                
+                if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false });
+                return parts.length ? parts : [{ text: text, bold: false, italic: false, code: false, strikethrough: false }];
+            };
+
             // --- Actions ---
             const zoom = (factor, pivot = { x: canvas.clientWidth / 2, y: canvas.clientHeight / 2 }) => {
                 const newZoom = Math.max(0.1, Math.min(5, state.zoom * factor));
@@ -784,6 +956,13 @@
                 }
                 toggleTheme(); // Set icons correctly
                 toggleTheme();
+
+                const savedMarkdown = localStorage.getItem('mindmap-markdown');
+                if (savedMarkdown === 'on') {
+                    state.markdownMode = true;
+                    dom.markdownIconOff.classList.add('hidden');
+                    dom.markdownIconOn.classList.remove('hidden');
+                }
 
                 setupEventListeners();
                 resizeCanvas();
