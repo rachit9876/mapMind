@@ -126,7 +126,7 @@
 
     <main class="flex-1 dot-background relative">
         <canvas id="mindMapCanvas"></canvas>
-        <textarea id="node-editor" class="absolute hidden text-left outline-none bg-transparent border-none text-[var(--node-text)] rounded-lg p-2 z-10 resize-none overflow-visible whitespace-nowrap" rows="1" wrap="off"></textarea>
+        <textarea id="node-editor" class="absolute hidden text-left outline-none bg-transparent border-none text-[var(--node-text)] rounded-lg p-2 z-10 resize-none overflow-hidden" rows="1" wrap="off"></textarea>
     </main>
 
     <div id="context-menu" class="absolute hidden z-30 rounded-lg shadow-lg w-48">
@@ -237,7 +237,7 @@
                     if (node.id !== state.editingNodeId) {
                         ctx.fillStyle = getCssVar('--node-text');
                         const lines = node.text.split('\n');
-                        const lineHeight = FONT_SIZE * 1.2;
+                        const lineHeight = FONT_SIZE * 1.4;
                         const startY = node.y + node.height / 2 - ((lines.length - 1) * lineHeight) / 2;
                         
                         lines.forEach((line, index) => {
@@ -345,9 +345,9 @@
             const updateNodeDimensions = (node) => {
                 ctx.font = `500 ${FONT_SIZE}px Inter`;
                 const lines = node.text.split('\n');
-                const maxWidth = Math.max(...lines.map(line => ctx.measureText(line).width), 100);
-                const lineHeight = FONT_SIZE * 1.2;
-                node.width = maxWidth + NODE_PADDING * 2;
+                const maxWidth = Math.max(...lines.map(line => ctx.measureText(line).width), 80);
+                const lineHeight = FONT_SIZE * 1.4;
+                node.width = maxWidth + NODE_PADDING * 1.5;
                 node.height = lines.length * lineHeight + NODE_PADDING * 2;
             };
 
@@ -370,7 +370,7 @@
                 nodeEditor.style.top = `${screenPos.y}px`;
                 nodeEditor.style.fontSize = `${FONT_SIZE * state.zoom}px`;
                 nodeEditor.style.padding = `${NODE_PADDING * state.zoom}px`;
-                nodeEditor.style.lineHeight = `${FONT_SIZE * state.zoom}px`;
+                nodeEditor.style.lineHeight = `${FONT_SIZE * 1.4 * state.zoom}px`;
                 nodeEditor.classList.remove('hidden');
                 autoResizeEditor();
                 nodeEditor.focus();
