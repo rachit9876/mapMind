@@ -189,7 +189,7 @@
                 history: [],
                 historyIndex: -1,
                 connecting: false,
-                markdownMode: false,
+                markdownMode: true,
             };
 
             const dom = {
@@ -325,6 +325,38 @@
                 state.history = state.history.slice(0, state.historyIndex);
                 state.history.push(snapshot);
                 updateHistoryButtons();
+                saveToLocalStorage();
+            };
+
+            const saveToLocalStorage = () => {
+                const saveData = {
+                    nodes: state.nodes,
+                    nextNodeId: state.nextNodeId,
+                    zoom: state.zoom,
+                    pan: state.pan,
+                    markdownMode: state.markdownMode
+                };
+                localStorage.setItem('mindmap-data', JSON.stringify(saveData));
+            };
+
+            const loadFromLocalStorage = () => {
+                const saved = localStorage.getItem('mindmap-data');
+                if (saved) {
+                    try {
+                        const data = JSON.parse(saved);
+                        state.nodes = data.nodes || [];
+                        state.nextNodeId = data.nextNodeId || 1;
+                        state.zoom = data.zoom || 1;
+                        state.pan = data.pan || { x: 0, y: 0 };
+                        if (data.markdownMode !== undefined) {
+                            state.markdownMode = data.markdownMode;
+                        }
+                        return true;
+                    } catch (e) {
+                        console.error('Failed to load saved data:', e);
+                    }
+                }
+                return false;
             };
 
             const undo = () => {
@@ -564,6 +596,7 @@
 
             const onMouseUp = () => {
                 if (state.isDragging) saveState();
+                if (state.isPanning) saveToLocalStorage();
                 state.isDragging = false;
                 state.isPanning = false;
                 state.draggingNodeId = null;
@@ -758,9 +791,25 @@
                 dom.markdownIconOff.classList.toggle('hidden', state.markdownMode);
                 dom.markdownIconOn.classList.toggle('hidden', !state.markdownMode);
                 localStorage.setItem('mindmap-markdown', state.markdownMode ? 'on' : 'off');
+                saveToLocalStorage();
                 requestRedraw();
             };
 
+            const imageCache = new Map();
+            
+            const loadImage = (url) => {
+                if (imageCache.has(url)) {
+                    return imageCache.get(url);
+                }
+                
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = () => requestRedraw();
+                img.src = url;
+                imageCache.set(url, img);
+                return img;
+            };
+            
             const renderMarkdownText = (ctx, text, x, y) => {
                 const parts = parseMarkdown(text);
                 let currentX = x;
@@ -768,43 +817,114 @@
                 const lineHeight = FONT_SIZE * 1.4;
                 
                 parts.forEach(part => {
-                    const lines = part.text.split('\n');
+                    if (part.text === '\n') {
+                        currentY += lineHeight;
+                        currentX = x;
+                        return;
+                    }
                     
-                    lines.forEach((line, lineIndex) => {
-                        if (lineIndex > 0) {
-                            currentY += lineHeight;
-                            currentX = x;
+                    // Handle images
+                    if (part.image) {
+                        const img = loadImage(part.image);
+                        if (img.complete && img.naturalWidth > 0) {
+                            const maxWidth = 150;
+                            const maxHeight = 100;
+                            let { width, height } = img;
+                            
+                            if (width > maxWidth) {
+                                height = (height * maxWidth) / width;
+                                width = maxWidth;
+                            }
+                            if (height > maxHeight) {
+                                width = (width * maxHeight) / height;
+                                height = maxHeight;
+                            }
+                            
+                            ctx.drawImage(img, currentX, currentY, width, height);
+                        }
+                        currentY += 110;
+                        currentX = x;
+                        return;
+                    }
+                    
+                    ctx.save();
+                    ctx.fillStyle = getCssVar('--node-text');
+                    
+                    // Handle headings
+                    if (part.heading) {
+                        const headingSizes = [24, 20, 18, 16, 14, 12];
+                        const headingSize = headingSizes[part.heading - 1] || 12;
+                        ctx.font = `700 ${headingSize}px Inter`;
+                        ctx.fillStyle = getCssVar('--accent');
+                    }
+                    // Handle code blocks
+                    else if (part.codeBlock) {
+                        ctx.font = `500 ${FONT_SIZE - 1}px monospace`;
+                        ctx.fillStyle = 'rgba(128,128,128,0.2)';
+                        const textWidth = ctx.measureText(part.text).width;
+                        ctx.fillRect(currentX - 4, currentY - FONT_SIZE + 2, textWidth + 8, FONT_SIZE + 4);
+                        ctx.fillStyle = getCssVar('--accent');
+                    }
+                    // Handle regular formatting
+                    else {
+                        let fontWeight = '500';
+                        let fontStyle = '';
+                        
+                        if (part.bold && part.italic) {
+                            fontWeight = '700';
+                            fontStyle = 'italic ';
+                        } else if (part.bold) {
+                            fontWeight = '700';
+                        } else if (part.italic) {
+                            fontStyle = 'italic ';
                         }
                         
-                        if (line) {
-                            ctx.save();
-                            ctx.fillStyle = getCssVar('--node-text');
-                            
-                            if (part.bold) ctx.font = `700 ${FONT_SIZE}px Inter`;
-                            else if (part.italic) ctx.font = `italic 500 ${FONT_SIZE}px Inter`;
-                            else ctx.font = `500 ${FONT_SIZE}px Inter`;
-                            
-                            if (part.code) {
-                                ctx.fillStyle = getCssVar('--accent');
-                                ctx.fillRect(currentX - 2, currentY - FONT_SIZE + 2, ctx.measureText(line).width + 4, FONT_SIZE + 4);
-                                ctx.fillStyle = getCssVar('--bg');
-                            }
-                            
-                            ctx.fillText(line, currentX, currentY);
-                            
-                            if (part.strikethrough) {
-                                const width = ctx.measureText(line).width;
-                                ctx.strokeStyle = getCssVar('--node-text');
-                                ctx.beginPath();
-                                ctx.moveTo(currentX, currentY - FONT_SIZE/10);
-                                ctx.lineTo(currentX + width, currentY - FONT_SIZE/10);
-                                ctx.stroke();
-                            }
-                            
-                            currentX += ctx.measureText(line).width;
-                            ctx.restore();
+                        ctx.font = `${fontStyle}${fontWeight} ${FONT_SIZE}px Inter`;
+                        
+                        if (part.code) {
+                            ctx.font = `500 ${FONT_SIZE}px monospace`;
+                            ctx.fillStyle = 'rgba(128,128,128,0.2)';
+                            const textWidth = ctx.measureText(part.text).width;
+                            ctx.fillRect(currentX - 2, currentY - FONT_SIZE + 2, textWidth + 4, FONT_SIZE + 4);
+                            ctx.fillStyle = getCssVar('--accent');
                         }
-                    });
+                        if (part.link) {
+                            ctx.fillStyle = '#0066cc';
+                        }
+                        if (part.blockquote) {
+                            ctx.fillStyle = '#666666';
+                        }
+                        if (part.hr) {
+                            ctx.fillStyle = '#cccccc';
+                        }
+                    }
+                    
+                    ctx.fillText(part.text, currentX, currentY);
+                    
+                    // Handle strikethrough
+                    if (part.strikethrough) {
+                        const width = ctx.measureText(part.text).width;
+                        ctx.strokeStyle = ctx.fillStyle;
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(currentX, currentY - FONT_SIZE * 0.3);
+                        ctx.lineTo(currentX + width, currentY - FONT_SIZE * 0.3);
+                        ctx.stroke();
+                    }
+                    
+                    // Handle underline for links
+                    if (part.link) {
+                        const width = ctx.measureText(part.text).width;
+                        ctx.strokeStyle = ctx.fillStyle;
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(currentX, currentY + 2);
+                        ctx.lineTo(currentX + width, currentY + 2);
+                        ctx.stroke();
+                    }
+                    
+                    currentX += ctx.measureText(part.text).width;
+                    ctx.restore();
                 });
             };
 
@@ -816,25 +936,56 @@
                 const lineHeight = FONT_SIZE * 1.4;
                 
                 parts.forEach(part => {
-                    const lines = part.text.split('\n');
+                    if (part.text === '\n') {
+                        maxWidth = Math.max(maxWidth, currentLineWidth);
+                        currentLineWidth = 0;
+                        totalHeight += lineHeight;
+                        return;
+                    }
                     
-                    lines.forEach((line, lineIndex) => {
-                        if (lineIndex > 0) {
-                            maxWidth = Math.max(maxWidth, currentLineWidth);
-                            currentLineWidth = 0;
-                            totalHeight += lineHeight;
+                    // Handle images
+                    if (part.image) {
+                        maxWidth = Math.max(maxWidth, 150);
+                        totalHeight += 110;
+                        currentLineWidth = 0;
+                        return;
+                    }
+                    
+                    ctx.save();
+                    
+                    // Handle headings
+                    if (part.heading) {
+                        const headingSizes = [24, 20, 18, 16, 14, 12];
+                        const headingSize = headingSizes[part.heading - 1] || 12;
+                        ctx.font = `700 ${headingSize}px Inter`;
+                    }
+                    // Handle code blocks
+                    else if (part.codeBlock) {
+                        ctx.font = `500 ${FONT_SIZE - 1}px monospace`;
+                    }
+                    // Handle regular formatting
+                    else {
+                        let fontWeight = '500';
+                        let fontStyle = '';
+                        
+                        if (part.bold && part.italic) {
+                            fontWeight = '700';
+                            fontStyle = 'italic ';
+                        } else if (part.bold) {
+                            fontWeight = '700';
+                        } else if (part.italic) {
+                            fontStyle = 'italic ';
                         }
                         
-                        if (line) {
-                            ctx.save();
-                            if (part.bold) ctx.font = `700 ${FONT_SIZE}px Inter`;
-                            else if (part.italic) ctx.font = `italic 500 ${FONT_SIZE}px Inter`;
-                            else ctx.font = `500 ${FONT_SIZE}px Inter`;
-                            
-                            currentLineWidth += ctx.measureText(line).width;
-                            ctx.restore();
+                        if (part.code) {
+                            ctx.font = `500 ${FONT_SIZE}px monospace`;
+                        } else {
+                            ctx.font = `${fontStyle}${fontWeight} ${FONT_SIZE}px Inter`;
                         }
-                    });
+                    }
+                    
+                    currentLineWidth += ctx.measureText(part.text).width;
+                    ctx.restore();
                 });
                 
                 maxWidth = Math.max(maxWidth, currentLineWidth, 80);
@@ -844,12 +995,129 @@
             };
 
             const parseMarkdown = (text) => {
+                const lines = text.split('\n');
+                const parts = [];
+                
+                for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+                    let line = lines[lineIndex];
+                    
+                    // Handle headings
+                    const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
+                    if (headingMatch) {
+                        const level = headingMatch[1].length;
+                        const headingText = headingMatch[2];
+                        parts.push({ text: headingText, bold: false, italic: false, code: false, strikethrough: false, heading: level });
+                        if (lineIndex < lines.length - 1) parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false });
+                        continue;
+                    }
+                    
+                    // Handle horizontal rule
+                    if (line.trim() === '---') {
+                        parts.push({ text: '───────────────', bold: false, italic: false, code: false, strikethrough: false, hr: true });
+                        if (lineIndex < lines.length - 1) parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false });
+                        continue;
+                    }
+                    
+                    // Handle blockquotes
+                    const blockquoteMatch = line.match(/^(>+)\s*(.*)$/);
+                    if (blockquoteMatch) {
+                        const level = blockquoteMatch[1].length;
+                        const quoteText = blockquoteMatch[2];
+                        const indent = '  '.repeat(level - 1);
+                        parts.push({ text: indent + '▎ ' + quoteText, bold: false, italic: true, code: false, strikethrough: false, blockquote: level });
+                        if (lineIndex < lines.length - 1) parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false });
+                        continue;
+                    }
+                    
+                    // Handle unordered lists
+                    const unorderedListMatch = line.match(/^(\s*)[-*+]\s+(.+)$/);
+                    if (unorderedListMatch) {
+                        const indent = unorderedListMatch[1];
+                        const listText = unorderedListMatch[2];
+                        parts.push({ text: indent + '• ' + listText, bold: false, italic: false, code: false, strikethrough: false, list: true });
+                        if (lineIndex < lines.length - 1) parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false });
+                        continue;
+                    }
+                    
+                    // Handle ordered lists
+                    const orderedListMatch = line.match(/^(\s*)(\d+)\.\s+(.+)$/);
+                    if (orderedListMatch) {
+                        const indent = orderedListMatch[1];
+                        const number = orderedListMatch[2];
+                        const listText = orderedListMatch[3];
+                        parts.push({ text: indent + number + '. ' + listText, bold: false, italic: false, code: false, strikethrough: false, list: true });
+                        if (lineIndex < lines.length - 1) parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false });
+                        continue;
+                    }
+                    
+                    // Handle code blocks
+                    if (line.trim().startsWith('```')) {
+                        const language = line.trim().substring(3);
+                        let codeContent = '';
+                        lineIndex++;
+                        while (lineIndex < lines.length && !lines[lineIndex].trim().startsWith('```')) {
+                            codeContent += lines[lineIndex] + '\n';
+                            lineIndex++;
+                        }
+                        if (codeContent.endsWith('\n')) codeContent = codeContent.slice(0, -1);
+                        parts.push({ text: codeContent, bold: false, italic: false, code: true, strikethrough: false, codeBlock: true, language });
+                        if (lineIndex < lines.length - 1) parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false });
+                        continue;
+                    }
+                    
+                    // Parse inline markdown for regular lines
+                    const inlineParts = parseInlineMarkdown(line);
+                    parts.push(...inlineParts);
+                    
+                    if (lineIndex < lines.length - 1) {
+                        parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false });
+                    }
+                }
+                
+                return parts.length ? parts : [{ text: text, bold: false, italic: false, code: false, strikethrough: false }];
+            };
+            
+            const parseInlineMarkdown = (text) => {
                 const parts = [];
                 let current = '';
                 let i = 0;
                 
                 while (i < text.length) {
-                    if (text.substr(i, 2) === '**') {
+                    // Handle links [text](url)
+                    const linkMatch = text.substr(i).match(/^\[([^\]]+)\]\(([^)]+)\)/);
+                    if (linkMatch) {
+                        if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false });
+                        current = '';
+                        parts.push({ text: linkMatch[1], bold: false, italic: false, code: false, strikethrough: false, link: linkMatch[2] });
+                        i += linkMatch[0].length;
+                        continue;
+                    }
+                    
+                    // Handle images ![alt](url)
+                    const imageMatch = text.substr(i).match(/^!\[([^\]]*)\]\(([^)]+)\)/);
+                    if (imageMatch) {
+                        if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false });
+                        current = '';
+                        parts.push({ text: '', bold: false, italic: false, code: false, strikethrough: false, image: imageMatch[2], alt: imageMatch[1] });
+                        i += imageMatch[0].length;
+                        continue;
+                    }
+                    
+                    // Handle bold and italic ***text***
+                    if (text.substr(i, 3) === '***') {
+                        if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false });
+                        current = '';
+                        i += 3;
+                        while (i < text.length && text.substr(i, 3) !== '***') {
+                            current += text[i];
+                            i++;
+                        }
+                        if (current) parts.push({ text: current, bold: true, italic: true, code: false, strikethrough: false });
+                        current = '';
+                        i += 3;
+                    }
+                    // Handle bold **text**
+                    else if (text.substr(i, 2) === '**') {
                         if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false });
                         current = '';
                         i += 2;
@@ -860,18 +1128,23 @@
                         if (current) parts.push({ text: current, bold: true, italic: false, code: false, strikethrough: false });
                         current = '';
                         i += 2;
-                    } else if (text[i] === '*' && text[i-1] !== '*' && text[i+1] !== '*') {
+                    }
+                    // Handle italic *text* or _text_
+                    else if ((text[i] === '*' || text[i] === '_') && text[i-1] !== text[i] && text[i+1] !== text[i]) {
+                        const marker = text[i];
                         if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false });
                         current = '';
                         i++;
-                        while (i < text.length && text[i] !== '*') {
+                        while (i < text.length && text[i] !== marker) {
                             current += text[i];
                             i++;
                         }
                         if (current) parts.push({ text: current, bold: false, italic: true, code: false, strikethrough: false });
                         current = '';
                         i++;
-                    } else if (text[i] === '`') {
+                    }
+                    // Handle inline code `text`
+                    else if (text[i] === '`') {
                         if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false });
                         current = '';
                         i++;
@@ -882,7 +1155,9 @@
                         if (current) parts.push({ text: current, bold: false, italic: false, code: true, strikethrough: false });
                         current = '';
                         i++;
-                    } else if (text.substr(i, 2) === '~~') {
+                    }
+                    // Handle strikethrough ~~text~~
+                    else if (text.substr(i, 2) === '~~') {
                         if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false });
                         current = '';
                         i += 2;
@@ -913,6 +1188,7 @@
                 state.zoom = newZoom;
                 
                 dom.zoomIndicator.textContent = `${Math.round(state.zoom * 100)}%`;
+                saveToLocalStorage();
                 requestRedraw();
             };
 
@@ -942,6 +1218,7 @@
                 state.pan.y = canvas.clientHeight / 2 - centerY * state.zoom;
                 
                 dom.zoomIndicator.textContent = `${Math.round(state.zoom * 100)}%`;
+                saveToLocalStorage();
                 requestRedraw();
             };
 
@@ -978,22 +1255,35 @@
                 toggleTheme();
 
                 const savedMarkdown = localStorage.getItem('mindmap-markdown');
-                if (savedMarkdown === 'on') {
+                if (savedMarkdown === 'off') {
+                    state.markdownMode = false;
+                } else {
                     state.markdownMode = true;
-                    dom.markdownIconOff.classList.add('hidden');
-                    dom.markdownIconOn.classList.remove('hidden');
                 }
+                dom.markdownIconOff.classList.toggle('hidden', state.markdownMode);
+                dom.markdownIconOn.classList.toggle('hidden', !state.markdownMode);
 
                 setupEventListeners();
                 resizeCanvas();
                 
-                // Create a welcome map
-                const cX = canvas.clientWidth / 2;
-                const cY = canvas.clientHeight / 2;
-                createNode(screenToWorld(cX, cY).x - 50, screenToWorld(cX, cY).y - 25, 'Welcome!');
+                // Load saved data or create welcome map
+                const hasLoadedData = loadFromLocalStorage();
+                if (!hasLoadedData) {
+                    const cX = canvas.clientWidth / 2;
+                    const cY = canvas.clientHeight / 2;
+                    createNode(screenToWorld(cX, cY).x - 50, screenToWorld(cX, cY).y - 25, 'Welcome!');
+                }
+                
+                // Update UI to reflect loaded state
+                dom.zoomIndicator.textContent = `${Math.round(state.zoom * 100)}%`;
+                dom.markdownIconOff.classList.toggle('hidden', state.markdownMode);
+                dom.markdownIconOn.classList.toggle('hidden', !state.markdownMode);
                 
                 saveState();
-                fitView();
+                if (!hasLoadedData) {
+                    fitView();
+                }
+                requestRedraw();
             };
 
             init();
