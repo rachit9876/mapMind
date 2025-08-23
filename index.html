@@ -944,6 +944,7 @@
                             ctx.font = `500 ${FONT_SIZE}px monospace`;
                             ctx.fillStyle = '#22c55e';
                         }
+
                         if (part.link) {
                             ctx.fillStyle = '#0066cc';
                             ctx.textDecoration = 'underline';
@@ -961,11 +962,11 @@
                     // Handle strikethrough
                     if (part.strikethrough) {
                         const width = ctx.measureText(part.text).width;
-                        ctx.strokeStyle = ctx.fillStyle;
-                        ctx.lineWidth = 1;
+                        ctx.strokeStyle = '#ef4444';
+                        ctx.lineWidth = 3;
                         ctx.beginPath();
-                        ctx.moveTo(currentX, currentY - FONT_SIZE * 0.3);
-                        ctx.lineTo(currentX + width, currentY - FONT_SIZE * 0.3);
+                        ctx.moveTo(currentX, currentY - FONT_SIZE * 0.1);
+                        ctx.lineTo(currentX + width, currentY - FONT_SIZE * 0.1);
                         ctx.stroke();
                     }
                     
