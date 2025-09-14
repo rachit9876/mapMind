@@ -1,1189 +1,1550 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mind Map Designer</title>
-    <meta name="description" content="A simple, elegant mind map designer.">
-    <meta name="color-scheme" content="light dark">
+    <title>Mind Map</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
-
-        body {
-            font-family: 'Inter', sans-serif;
-            margin: 0;
-            overflow: hidden; /* Prevent scrolling */
-        }
-
-        /* Design tokens via CSS variables (light/dark) */
         :root {
-            --bg: #f3f4f6;
-            --dot: rgba(0, 0, 0, 0.3); /* black @ 30% */
-            --line: #9ca3af; /* gray-400 */
-            --node-fill: #ffffff;
-            --node-border: #e5e7eb; /* gray-200 */
-            --node-text: #111827; /* gray-900 */
-            --selected-border: #4f46e5; /* indigo-600 */
-            --multi-border: #10b981; /* emerald-500 */
-            --drag-border: #a5b4fc; /* indigo-300 */
-            --shadow: rgba(0, 0, 0, 0.12);
+            --bg: #f5f6fa;
+            --bg-secondary: #ffffff;
+            --border: #e0e0e0;
+            --text-primary: #222;
+            --text-secondary: #888;
+            --accent: #007aff;
+            --accent-hover: #0051a8;
+            --node-bg: #fff;
+            --node-border: #e0e0e0;
+            --node-text: #222;
+            --node-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            --line: #d1d5db;
+            --dot: #e0e0e0;
         }
-
         html.dark {
-            --bg: #0b1220;
-            --dot: rgba(255, 255, 255, 0.2);
-            --line: #4b5563; /* gray-600 */
-            --node-fill: #0f172a; /* slate-900 */
-            --node-border: #1f2937; /* gray-800 */
-            --node-text: #e5e7eb; /* gray-200 */
-            --selected-border: #6366f1; /* indigo-500 */
-            --multi-border: #34d399; /* emerald-400 */
-            --drag-border: #818cf8; /* indigo-400 */
-            --shadow: rgba(0, 0, 0, 0.5);
+            --bg: #292929;
+            --bg-secondary: #2c2f36;
+            --border: #444;
+            --text-primary: #ffffff;
+            --text-secondary: #bbb;
+            --accent: #0a84ff;
+            --accent-hover: #0051a8;
+            --node-bg: #000000;
+            --node-border: #444;
+            --node-text: #ffffff;
+            --node-shadow: 0 4px 16px rgba(0,0,0,0.18);
+            --line: #444;
+            --dot: #444;
         }
-
-        /* Custom dotted background for the canvas */
-        .dot-background {
+        body {
             background-color: var(--bg);
-            background-image: radial-gradient(var(--dot) 2px, transparent 2px);
-            background-size: 100px 100px;
+            color: var(--text-primary);
+            overflow: hidden;
         }
-
-        #mindMapCanvas {
-            cursor: grab;
+        .dot-background {
+            background-image: none;
         }
-
-        #mindMapCanvas:active {
-            cursor: grabbing;
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2.2rem;
+            height: 2.2rem;
+            border-radius: 0.7rem;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+            transition: background 0.2s, box-shadow 0.2s;
         }
-
-        /* Styles for the custom context menu */
+        .btn-secondary {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border);
+        }
+        .btn-secondary:hover {
+            background-color: var(--border);
+        }
+        .btn-primary {
+            background-color: var(--accent);
+            color: #fff;
+            border: none;
+        }
+        .btn-primary:hover {
+            background-color: var(--accent-hover);
+        }
         #context-menu {
-            position: absolute;
-            z-index: 1000;
-            display: none;
-            background-color: #fff;
-            border-radius: 0.75rem; /* rounded-xl */
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-xl */
-            padding: 0.5rem;
-            min-width: 150px;
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.08);
         }
-
-        #context-menu ul {
-            list-style: none;
-            margin: 0;
-            padding: 0;
-        }
-
         #context-menu li {
-            padding: 0.5rem 1rem;
-            cursor: pointer;
-            color: #4a5568; /* text-gray-700 */
-            transition: background-color 0.2s;
-            border-radius: 0.5rem; /* rounded-lg */
+            border-radius: 0.4rem;
+            margin: 2px 0;
         }
-
         #context-menu li:hover {
-            background-color: #f7fafc; /* bg-gray-50 */
+            background-color: var(--accent);
+            color: #fff;
         }
 
-        #context-menu li.disabled {
-            color: #cbd5e0; /* text-gray-400 */
-            cursor: not-allowed;
+        .rounded-lg {
+            border-radius: 1rem !important;
         }
-
-        /* In-line text input for renaming */
-        #inline-rename-input {
-            position: absolute;
-            z-index: 500;
-            display: none;
-            background: #fff;
-            border: 2px solid #4c51bf; /* indigo-600 */
-            border-radius: 0.5rem;
-            padding: 0.5rem;
-            text-align: center;
-            font: 16px 'Inter', sans-serif;
-            color: #1f2937;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        .flex {
+            gap: 0.5rem;
+        }
+        .absolute.left-1\/2 {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
         }
     </style>
+
 </head>
-<body class="bg-gray-100 flex flex-col h-screen">
+<body class="flex flex-col h-screen">
 
-    <!-- Top Header -->
-    <header class="bg-white/80 dark:bg-slate-900/70 backdrop-blur p-3 md:p-4 shadow-sm border-b border-gray-200 dark:border-slate-800 flex justify-between items-center z-10">
-        <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-md bg-indigo-600 flex items-center justify-center shadow-sm">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" class="w-5 h-5">
-                    <path d="M12 2a1 1 0 0 1 1 1v2.06a7.002 7.002 0 0 1 6.94 6.167l2.06.275a1 1 0 1 1-.26 1.982l-2.06-.275A7.002 7.002 0 0 1 13 20.94V23a1 1 0 1 1-2 0v-2.06a7.002 7.002 0 0 1-6.94-6.167l-2.06-.275a1 1 0 0 1 .26-1.982l2.06.275A7.002 7.002 0 0 1 11 5.06V3a1 1 0 0 1 1-1Zm0 6a5 5 0 1 0 0 10 5 5 0 0 0 0-10Z"/>
-                </svg>
-            </div>
-            <div>
-                <h1 class="text-lg md:text-2xl font-semibold text-gray-900 dark:text-gray-100 leading-tight">Mind Map Designer</h1>
-                <p class="hidden md:block text-xs text-gray-500 dark:text-gray-400">Create, connect, and organize ideas with ease</p>
-            </div>
-        </div>
+    <header class="bg-[var(--bg-secondary)]/80 backdrop-blur-xl border-b border-[var(--border)] p-2 flex justify-between items-center z-20">
         <div class="flex items-center gap-2">
-            <button id="zoomOutBtn" class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-700 shadow-sm transition-colors" title="Zoom out (Ctrl + -)">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-gray-700 dark:text-gray-200"><path fill-rule="evenodd" d="M10 3.75a6.25 6.25 0 1 1 0 12.5 6.25 6.25 0 0 1 0-12.5Zm0 1.5a4.75 4.75 0 1 0 0 9.5 4.75 4.75 0 0 0 0-9.5ZM21 20.25a.75.75 0 0 1-1.06 0l-4.22-4.22a8.5 8.5 0 1 1 1.06-1.06l4.22 4.22a.75.75 0 0 1 0 1.06ZM6.75 10a.75.75 0 0 1 .75-.75h5a.75.75 0 0 1 0 1.5h-5A.75.75 0 0 1 6.75 10Z" clip-rule="evenodd"/></svg>
+            <h1 class="text-2xl font-semibold tracking-tight" style="letter-spacing: -0.02em;">Mind Map</h1>
+        </div>
+        <div class="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 p-2 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-md">
+            <button id="undoBtn" class="btn btn-secondary" title="Undo (Ctrl+Z)" disabled>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 15l-3-3m0 0l3-3m-3 3h8a5 5 0 0 0 0-10H9"></path></svg>
             </button>
-            
-            <div id="zoomIndicator" class="px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg">100%</div>
-            
-            <button id="zoomInBtn" class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-700 shadow-sm transition-colors" title="Zoom in (Ctrl + +)">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-gray-700 dark:text-gray-200"><path fill-rule="evenodd" d="M10 3.75a6.25 6.25 0 1 1 0 12.5 6.25 6.25 0 0 1 0-12.5Zm0 1.5a4.75 4.75 0 1 0 0 9.5 4.75 4.75 0 0 0 0-9.5ZM21 20.25a.75.75 0 0 1-1.06 0l-4.22-4.22a8.5 8.5 0 1 1 1.06-1.06l4.22 4.22a.75.75 0 0 1 0 1.06ZM10.75 6.5a.75.75 0 0 0-1.5 0V9.25H6.5a.75.75 0 0 0 0 1.5h2.75V13.5a.75.75 0 0 0 1.5 0V10.75H13.5a.75.75 0 0 0 0-1.5h-2.75V6.5Z" clip-rule="evenodd"/></svg>
+            <button id="redoBtn" class="btn btn-secondary" title="Redo (Ctrl+Y)" disabled>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 15l3-3m0 0l-3-3m3 3H8a5 5 0 0 0 0 10h3"></path></svg>
             </button>
+            <div class="w-px h-6 bg-[var(--border)] mx-1"></div>
+            <button id="addNodeBtn" class="btn btn-primary" title="Add Node">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            </button>
+        </div>
 
-            <button id="fitViewBtn" class="inline-flex items-center gap-2 bg-gray-100 dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700 text-gray-800 dark:text-gray-100 font-medium py-2 px-3 md:px-4 rounded-lg border border-gray-200 dark:border-slate-700 shadow-sm transition-colors" title="Fit to view">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M4.5 4.5h6a.75.75 0 0 0 0-1.5h-6A2.25 2.25 0 0 0 2.25 5.25v6a.75.75 0 0 0 1.5 0v-6A.75.75 0 0 1 4.5 4.5Zm9 0h6a.75.75 0 0 1 .75.75v6a.75.75 0 0 0 1.5 0v-6A2.25 2.25 0 0 0 19.5 3h-6a.75.75 0 0 0 0 1.5Zm7.5 9a.75.75 0 0 0-1.5 0v6a.75.75 0 0 1-.75.75h-6a.75.75 0 0 0 0 1.5h6A2.25 2.25 0 0 0 21.75 19.5v-6Zm-18 6v-6a.75.75 0 0 0-1.5 0v6A2.25 2.25 0 0 0 4.5 21.75h6a.75.75 0 0 0 0-1.5h-6a.75.75 0 0 1-.75-.75Z"/></svg>
-                <span class="hidden md:inline">Fit</span>
+        <div class="flex items-center gap-2">
+            <div class="flex items-center gap-1 p-1 bg-[var(--bg)] border border-[var(--border)] rounded-lg">
+                <button id="zoomOutBtn" class="btn btn-secondary" title="Zoom Out (-)">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg>
+                </button>
+                <div id="zoomIndicator" class="text-sm font-semibold w-16 text-center">100%</div>
+                <button id="zoomInBtn" class="btn btn-secondary" title="Zoom In (+)">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                </button>
+            </div>
+            <button id="fitViewBtn" class="btn btn-secondary" title="Fit to View">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4h4m12 4V4h-4M4 16v4h4m12-4v4h-4"></path></svg>
             </button>
-
-            <button id="resetPositionBtn" class="inline-flex items-center gap-2 bg-gray-100 dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700 text-gray-800 dark:text-gray-100 font-medium py-2 px-3 md:px-4 rounded-lg border border-gray-200 dark:border-slate-700 shadow-sm transition-colors" title="Center on first node">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M12 3.75a.75.75 0 0 1 .75.75v2.31a6.19 6.19 0 0 1 4.44 4.44h2.31a.75.75 0 0 1 0 1.5H17.19a6.19 6.19 0 0 1-4.44 4.44v2.31a.75.75 0 0 1-1.5 0v-2.31a6.19 6.19 0 0 1-4.44-4.44H4.5a.75.75 0 0 1 0-1.5h2.31A6.19 6.19 0 0 1 10.5 6.81V4.5a.75.75 0 0 1 .75-.75Z"/></svg>
-                <span class="hidden md:inline">Center</span>
+            <button id="importBtn" class="btn btn-secondary" title="Import">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-1m-4-8l4 4m0 0l4-4m-4 4V4"></path></svg>
             </button>
-
-            <button id="createNodeBtn" class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-3 md:px-4 rounded-lg border border-indigo-600 dark:border-indigo-600 shadow-sm transition-colors" title="Create node (Right-click anywhere too)">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M12 4.5a.75.75 0 0 1 .75.75v6h6a.75.75 0 0 1 0 1.5h-6v6a.75.75 0 0 1-1.5 0v-6h-6a.75.75 0 0 1 0-1.5h6v-6A.75.75 0 0 1 12 4.5Z"/></svg>
-                <span class="hidden md:inline">New</span>
+            <button id="exportBtn" class="btn btn-secondary" title="Export">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
             </button>
-
-            <button id="curvedLinesToggle" class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-3 md:px-4 rounded-lg border border-indigo-600 shadow-sm transition-colors" title="Toggle curved lines">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M3 12c0-.75.75-1.5 1.5-1.5s1.5.75 1.5 1.5-.75 1.5-1.5 1.5S3 12.75 3 12zm6-3c0-.75.75-1.5 1.5-1.5s1.5.75 1.5 1.5-.75 1.5-1.5 1.5S9 9.75 9 9zm6 6c0-.75.75-1.5 1.5-1.5s1.5.75 1.5 1.5-.75 1.5-1.5 1.5-1.5-.75-1.5-1.5z"/></svg>
-                <span class="hidden md:inline">Curves</span>
+            <button id="cloudSaveBtn" class="btn btn-secondary" title="Save to Cloud">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
             </button>
-
-            <button id="themeToggle" class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-700 shadow-sm transition-colors" title="Toggle theme">
-                <svg id="iconSun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-gray-700 dark:text-gray-200"><path d="M12 18.25a6.25 6.25 0 1 0 0-12.5 6.25 6.25 0 0 0 0 12.5ZM12 1.5a.75.75 0 0 1 .75.75v2a.75.75 0 1 1-1.5 0v-2A.75.75 0 0 1 12 1.5Zm0 17.5a.75.75 0 0 1 .75.75v2a.75.75 0 1 1-1.5 0v-2a.75.75 0 0 1 .75-.75ZM22.5 12a.75.75 0 0 1-.75.75h-2a.75.75 0 1 1 0-1.5h2a.75.75 0 0 1 .75.75ZM5.25 12a.75.75 0 0 1-.75.75h-2a.75.75 0 1 1 0-1.5h2a.75.75 0 0 1 .75.75Zm13.01 7.04a.75.75 0 0 1-1.06 0l-1.42-1.42a.75.75 0 1 1 1.06-1.06l1.42 1.42a.75.75 0 0 1 0 1.06Zm-10.5-10.5a.75.75 0 0 1-1.06 0L5.28 7.12a.75.75 0 1 1 1.06-1.06l1.42 1.42a.75.75 0 0 1 0 1.06Zm10.5-6.56a.75.75 0 0 1 0 1.06l-1.42 1.42a.75.75 0 0 1-1.06-1.06l1.42-1.42a.75.75 0 0 1 1.06 0Zm-10.5 10.5a.75.75 0 0 1 0 1.06L6.79 16.0a.75.75 0 1 1-1.06-1.06l1.42-1.42a.75.75 0 0 1 1.06 0Z"/></svg>
+            <button id="cloudLoadBtn" class="btn btn-secondary" title="Load from Cloud">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 11l3 3m0 0l3-3m-3 3V4"></path></svg>
             </button>
-
-            <button id="downloadBtn" class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-700 shadow-sm transition-colors" title="Download">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-gray-700 dark:text-gray-200"><path d="M12 1.5a.75.75 0 0 1 .75.75v7.94l2.47-2.47a.75.75 0 1 1 1.06 1.06l-3.75 3.75a.75.75 0 0 1-1.06 0L7.72 8.78a.75.75 0 0 1 1.06-1.06L11.25 10.19V2.25A.75.75 0 0 1 12 1.5Zm-7.5 9a.75.75 0 0 1 .75.75v6a.75.75 0 0 0 .75.75h12a.75.75 0 0 0 .75-.75v-6a.75.75 0 0 1 1.5 0v6A2.25 2.25 0 0 1 18 21.75H6A2.25 2.25 0 0 1 3.75 18v-6a.75.75 0 0 1 .75-.75Z"/></svg>
+            <button id="markdownToggle" class="btn btn-secondary" title="Toggle Markdown Mode">
+                <svg id="markdown-icon-off" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                <svg id="markdown-icon-on" class="w-5 h-5 hidden" fill="currentColor" viewBox="0 0 24 24"><path d="M22.269 19.385c-.13-.151-.297-.243-.485-.243h-3.039v-7.874l-2.255 2.885-.239.307-.238-.307-2.255-2.885v7.874h-3.04c-.187 0-.354.092-.485.243-.13.15-.202.35-.202.56 0 .21.072.41.202.56.131.151.298.243.485.243h3.04v1.125c0 .621.504 1.125 1.125 1.125s1.125-.504 1.125-1.125v-1.125h3.039c.187 0 .354-.092.485-.243.13-.15.202-.35.202-.56 0-.21-.072-.41-.202-.56zm-9.269-9.385h-3v7h-2l3 3 3-3h-2v-7h1z"/></svg>
             </button>
-
-            <button id="openBtn" class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-700 shadow-sm transition-colors" title="Open">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-gray-700 dark:text-gray-200"><path d="M19.5 21a3 3 0 0 0 3-3v-4.5a3 3 0 0 0-3-3h-15a3 3 0 0 0-3 3V18a3 3 0 0 0 3 3h15ZM1.5 10.146V6a3 3 0 0 1 3-3h5.379a2.25 2.25 0 0 1 1.59.659l2.122 2.121c.14.141.331.22.53.22H19.5a3 3 0 0 1 3 3v1.146A4.483 4.483 0 0 0 19.5 9h-15a4.483 4.483 0 0 0-3 1.146Z"/></svg>
-            </button>
-
-            <button id="helpBtn" class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-700 shadow-sm transition-colors" title="Shortcuts">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-gray-700 dark:text-gray-200"><path d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75S6.615 21.75 12 21.75s9.75-4.365 9.75-9.75S17.385 2.25 12 2.25Zm-.007 14.997a1.125 1.125 0 1 1 0 2.25 1.125 1.125 0 0 1 0-2.25ZM12 5.25a4.5 4.5 0 0 1 3.642 7.07c-.532.753-1.22 1.245-1.777 1.648-.2.145-.384.279-.53.402-.148.125-.256.23-.321.35a.75.75 0 1 1-1.328-.676c.19-.373.485-.62.74-.824.167-.133.35-.263.557-.415.497-.361 1.03-.75 1.368-1.226A3 3 0 1 0 9 9.75a.75.75 0 0 1-1.5 0 4.5 4.5 0 0 1 4.5-4.5Z"/></svg>
+            <button id="themeToggle" class="btn btn-secondary" title="Toggle Theme">
+                <svg id="theme-icon-light" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0z"></path></svg>
+                <svg id="theme-icon-dark" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 0 1 8.646 3.646 9.003 9.003 0 0 0 12 21a9.003 9.003 0 0 0 8.354-5.646z"></path></svg>
             </button>
         </div>
     </header>
 
-    <!-- Canvas Container -->
-    <main class="flex-1 dot-background">
-        <canvas id="mindMapCanvas" class="w-full h-full"></canvas>
+    <main class="flex-1 dot-background relative">
+    <canvas id="mindMapCanvas"></canvas>
+    <textarea id="node-editor" class="absolute hidden text-left outline-none bg-[var(--node-bg)] border border-[var(--node-border)] text-[var(--node-text)] rounded-lg p-2 z-10 resize-none overflow-hidden shadow-lg" rows="1" wrap="off"></textarea>
     </main>
-    
-    <!-- Inline text input for renaming -->
-    <input type="text" id="inline-rename-input">
-    
-    <!-- Hidden file input for opening files -->
-    <input type="file" id="fileInput" accept=".rxt" style="display: none;">
 
-    <!-- Custom Right-Click Menu -->
-    <div id="context-menu" class="hidden">
-        <ul>
-            <li id="menu-add-branch" class="disabled">Add Branch</li>
-            <li id="menu-create">Create New Node</li>
-            <li id="menu-rename" class="disabled">Rename Node</li>
-            <li id="menu-delete" class="disabled">Delete Element</li>
-            <li id="menu-delete-connection" class="disabled">Delete Connection</li>
+    <div id="context-menu" class="absolute hidden z-30 rounded-lg shadow-lg w-48">
+        <ul class="py-1">
+            <li id="menu-add-child" class="px-4 py-2 cursor-pointer">Add Child</li>
+            <li id="menu-add-node" class="px-4 py-2 cursor-pointer">Add Node</li>
+            <li id="menu-connect" class="px-4 py-2 cursor-pointer">Connect</li>
+            <li id="menu-delete-node" class="px-4 py-2 cursor-pointer">Delete Node</li>
+            <li id="menu-disconnect" class="px-4 py-2 cursor-pointer">Disconnect</li>
         </ul>
     </div>
-
-    <!-- Help modal -->
-    <div id="helpModal" class="fixed inset-0 hidden items-center justify-center">
-        <div class="absolute inset-0 bg-black/40"></div>
-        <div class="relative z-10 w-[90%] max-w-lg bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-xl p-5">
-            <div class="flex items-center justify-between mb-3">
-                <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Shortcuts</h2>
-                <button id="helpCloseBtn" class="w-8 h-8 inline-flex items-center justify-center rounded-md hover:bg-gray-100 dark:hover:bg-slate-800" title="Close">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-gray-600 dark:text-gray-300"><path fill-rule="evenodd" d="M5.47 5.47a.75.75 0 0 1 1.06 0L12 10.94l5.47-5.47a.75.75 0 1 1 1.06 1.06L13.06 12l5.47 5.47a.75.75 0 1 1-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 0 1-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd"/></svg>
-                </button>
+    
+    <input type="file" id="file-input" class="hidden" accept=".rxt">
+    
+    <!-- Cloud Save/Load Modal -->
+    <div id="cloudModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+        <div class="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 w-96 max-w-md mx-4">
+            <h3 id="modalTitle" class="text-lg font-semibold mb-4">Cloud Save</h3>
+            <div class="mb-4">
+                <label for="usernameInput" class="block text-sm font-medium mb-2">Username:</label>
+                <input type="text" id="usernameInput" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--bg)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" placeholder="Enter unique username">
             </div>
-            <ul class="text-sm text-gray-700 dark:text-gray-300 space-y-2">
-                <li><span class="font-medium">Ctrl/Cmd + Click</span>: multi-select nodes</li>
-                <li><span class="font-medium">Enter</span>: connect selected nodes in order</li>
-                <li><span class="font-medium">Double-click node</span>: rename inline</li>
-                <li><span class="font-medium">Mouse wheel</span>: zoom in/out</li>
-                <li><span class="font-medium">Drag empty space</span>: pan</li>
-                <li><span class="font-medium">Right-click</span>: context menu</li>
-            </ul>
+            <div class="flex gap-2 justify-end">
+                <button id="modalCancel" class="px-4 py-2 border border-[var(--border)] rounded-lg hover:bg-[var(--border)] transition-colors">Cancel</button>
+                <button id="modalConfirm" class="px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent-hover)] transition-colors">Confirm</button>
+            </div>
         </div>
     </div>
 
+    <script src="cloud.js"></script>
     <script>
-        window.onload = function() {
-            // Get references to all DOM elements
+        document.addEventListener('DOMContentLoaded', () => {
             const canvas = document.getElementById('mindMapCanvas');
             const ctx = canvas.getContext('2d');
-            const createNodeBtn = document.getElementById('createNodeBtn');
-            const resetPositionBtn = document.getElementById('resetPositionBtn');
-            const curvedLinesToggle = document.getElementById('curvedLinesToggle');
-            let curvedLinesEnabled = true;
-            const themeToggle = document.getElementById('themeToggle');
-            const zoomInBtn = document.getElementById('zoomInBtn');
-            const zoomOutBtn = document.getElementById('zoomOutBtn');
-            const zoomIndicator = document.getElementById('zoomIndicator');
-            const fitViewBtn = document.getElementById('fitViewBtn');
+            const nodeEditor = document.getElementById('node-editor');
             const contextMenu = document.getElementById('context-menu');
-            const menuCreateBtn = document.getElementById('menu-create');
-            const menuAddBranchBtn = document.getElementById('menu-add-branch');
-            const menuRenameBtn = document.getElementById('menu-rename');
-            const menuDeleteBtn = document.getElementById('menu-delete');
-            const menuDeleteConnectionBtn = document.getElementById('menu-delete-connection');
-            const inlineRenameInput = document.getElementById('inline-rename-input');
-            const helpBtn = document.getElementById('helpBtn');
-            const helpModal = document.getElementById('helpModal');
-            const helpCloseBtn = document.getElementById('helpCloseBtn');
-            const downloadBtn = document.getElementById('downloadBtn');
-            const openBtn = document.getElementById('openBtn');
-            const fileInput = document.getElementById('fileInput');
 
-            // --- State Management ---
-            let nodes = [];
-            let selectedNodeId = null;
-            let draggedNodeId = null;
-            let lastMouseX, lastMouseY;
-            let nextNodeId = 1;
-            let zoomScale = 1;
-            let panX = 0, panY = 0;
-            let editingNodeId = null;
-            let textSelected = false;
-            let cursorPosition = 0;
-            let multiSelectedNodes = [];
-            let selectedConnectionId = null;
+            let state = {
+                nodes: [],
+                pan: { x: 0, y: 0 },
+                zoom: 1,
+                nextNodeId: 1,
+                selectedNodeId: null,
+                editingNodeId: null,
+                draggingNodeId: null,
+                dragStart: { x: 0, y: 0 },
+                isDragging: false,
+                isPanning: false,
+                history: [],
+                historyIndex: -1,
+                connecting: false,
+                markdownMode: true,
+            };
 
-            // --- Canvas and Drawing Logic ---
+            const dom = {
+                undoBtn: document.getElementById('undoBtn'),
+                redoBtn: document.getElementById('redoBtn'),
+                addNodeBtn: document.getElementById('addNodeBtn'),
+                zoomInBtn: document.getElementById('zoomInBtn'),
+                zoomOutBtn: document.getElementById('zoomOutBtn'),
+                zoomIndicator: document.getElementById('zoomIndicator'),
+                fitViewBtn: document.getElementById('fitViewBtn'),
+                importBtn: document.getElementById('importBtn'),
+                exportBtn: document.getElementById('exportBtn'),
+                cloudSaveBtn: document.getElementById('cloudSaveBtn'),
+                cloudLoadBtn: document.getElementById('cloudLoadBtn'),
+                markdownToggle: document.getElementById('markdownToggle'),
+                markdownIconOff: document.getElementById('markdown-icon-off'),
+                markdownIconOn: document.getElementById('markdown-icon-on'),
+                themeToggle: document.getElementById('themeToggle'),
+                themeIconLight: document.getElementById('theme-icon-light'),
+                themeIconDark: document.getElementById('theme-icon-dark'),
+                fileInput: document.getElementById('file-input'),
+            };
 
-            // Function to resize canvas to fill the window
-            function resizeCanvas() {
-                canvas.width = window.innerWidth;
-                canvas.height = window.innerHeight - document.querySelector('header').offsetHeight;
-                draw();
-            }
+            const FONT_SIZE = 16;
+            const NODE_PADDING = 16;
 
-            // Function to draw the entire mind map
-            function draw() {
-                // Clear the canvas
+            // --- Core Functions ---
+            const resizeCanvas = () => {
+                const header = document.querySelector('header');
+                canvas.width = window.innerWidth * window.devicePixelRatio;
+                canvas.height = (window.innerHeight - header.offsetHeight) * window.devicePixelRatio;
+                canvas.style.width = `${window.innerWidth}px`;
+                canvas.style.height = `${window.innerHeight - header.offsetHeight}px`;
+                ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+                requestRedraw();
+            };
+
+            const requestRedraw = () => {
+                requestAnimationFrame(draw);
+            };
+
+            const draw = () => {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-                
-                // Update background dot size based on zoom
-                const dotSize = 20 * zoomScale;
-                canvas.parentElement.style.backgroundSize = `${dotSize}px ${dotSize}px`;
-                canvas.parentElement.style.backgroundPosition = `${panX % dotSize}px ${panY % dotSize}px`;
-                
-                // Read theme colors
-                const styles = getComputedStyle(document.documentElement);
-                const colorLine = styles.getPropertyValue('--line').trim();
-                const colorNodeFill = styles.getPropertyValue('--node-fill').trim();
-                const colorNodeText = styles.getPropertyValue('--node-text').trim();
-                const colorSelected = styles.getPropertyValue('--selected-border').trim();
-                const colorMulti = styles.getPropertyValue('--multi-border').trim();
-                const colorDrag = styles.getPropertyValue('--drag-border').trim();
-                const nodeShadow = styles.getPropertyValue('--shadow').trim();
-
-                // Apply zoom and pan transformation
                 ctx.save();
-                ctx.translate(panX, panY);
-                ctx.scale(zoomScale, zoomScale);
+                ctx.translate(state.pan.x, state.pan.y);
+                ctx.scale(state.zoom, state.zoom);
 
-                // Draw branches (lines) first
-                // Ensure consistent font before measuring/drawing text
-                ctx.font = '16px "Inter", sans-serif';
+                drawConnections();
+                drawNodes();
 
-                for (const node of nodes) {
-                    if (node.parent !== null) {
-                        const parentNode = nodes.find(n => n.id === node.parent);
-                        if (parentNode) {
-                            // Calculate the start and end points at the center of the nodes
-                            const startX = parentNode.x + parentNode.width / 2;
-                            const startY = parentNode.y + parentNode.height / 2;
-                            const endX = node.x + node.width / 2;
-                            const endY = node.y + node.height / 2;
+                if (state.connecting && state.selectedNodeId) {
+                    drawConnectionLineToCursor();
+                }
 
+                ctx.restore();
+            };
+
+            const drawNodes = () => {
+                ctx.font = `500 ${FONT_SIZE}px sans-serif`;
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+
+                for (const node of state.nodes) {
+                    updateNodeDimensions(node);
+                    
+                    ctx.fillStyle = getCssVar('--node-bg');
+                    ctx.strokeStyle = getCssVar(node.id === state.selectedNodeId ? '--accent' : '--node-border');
+                    ctx.lineWidth = 2;
+                    ctx.shadowColor = getCssVar('--node-shadow');
+                    ctx.shadowBlur = 10;
+
+                    fillRoundedRect(ctx, node.x, node.y, node.width, node.height, 8);
+                    strokeRoundedRect(ctx, node.x, node.y, node.width, node.height, 8);
+                    
+                    ctx.shadowColor = 'transparent';
+                    
+                    ctx.shadowColor = 'transparent';
+                    
+                    if (node.id !== state.editingNodeId) {
+                        ctx.fillStyle = getCssVar('--node-text');
+                        if (state.markdownMode) {
+                            renderMarkdownText(ctx, node.text, node.x + NODE_PADDING, node.y + NODE_PADDING);
+                        } else {
+                            const lines = node.text.split('\n');
+                            const lineHeight = FONT_SIZE * 1.4;
+                            const startY = node.y + node.height / 2 - ((lines.length - 1) * lineHeight) / 2;
+                            lines.forEach((line, index) => {
+                                ctx.fillText(line, node.x + NODE_PADDING, startY + index * lineHeight);
+                            });
+                        }
+                    }
+                }
+            };
+
+            const drawConnections = () => {
+                ctx.strokeStyle = getCssVar('--line');
+                ctx.lineWidth = 2.5;
+                for (const node of state.nodes) {
+                    if (node.parentId) {
+                        const parent = findNodeById(node.parentId);
+                        if (parent) {
+                            const start = { x: parent.x + parent.width / 2, y: parent.y + parent.height / 2 };
+                            const end = { x: node.x + node.width / 2, y: node.y + node.height / 2 };
+                            
                             ctx.beginPath();
-                            ctx.moveTo(startX, startY);
-
-                            if (curvedLinesEnabled) {
-                                // Calculate a dynamic control offset for a smoother S-curve
-                                // Increased the multiplier from 0.3 to 0.6 for a more pronounced curve.
-                                const dx = endX - startX;
-                                const dy = endY - startY;
-                                const controlOffset = Math.min(Math.abs(dx), Math.abs(dy)) * 0.6;
-
-                                // Draw a gentle S-curve using a cubic Bézier curve
-                                // The control points create a smooth "bend" in the line.
-                                ctx.bezierCurveTo(
-                                    startX + controlOffset, startY,
-                                    endX - controlOffset, endY,
-                                    endX, endY
-                                );
-                            } else {
-                                // Draw a straight line
-                                ctx.lineTo(endX, endY);
-                            }
-
-                ctx.lineWidth = 2;
-                ctx.lineCap = 'round';
-                ctx.strokeStyle = colorLine;
+                            ctx.moveTo(start.x, start.y);
+                            ctx.bezierCurveTo(start.x + 50, start.y, end.x - 50, end.y, end.x, end.y);
                             ctx.stroke();
                         }
                     }
                 }
+            };
 
-                // Draw nodes
-                for (const node of nodes) {
-                    // Node styles
-                    const isSelected = (node.id === selectedNodeId);
-                    const isMultiSelected = multiSelectedNodes.includes(node.id);
-                    const isDragged = (node.id === draggedNodeId);
-            ctx.fillStyle = colorNodeFill;
-            ctx.strokeStyle = isSelected ? colorSelected : (isMultiSelected ? colorMulti : (isDragged ? colorDrag : styles.getPropertyValue('--node-border').trim()));
-            ctx.lineWidth = isSelected ? 3 : (isMultiSelected ? 2.5 : (isDragged ? 2.5 : 1.5));
-            ctx.shadowColor = nodeShadow;
-            ctx.shadowBlur = 8;
-            ctx.shadowOffsetY = 2;
-                    
-                    // Draw node rectangle
-                    const padding = 15;
-                    // Measure text to determine node dimensions (font set above)
-                    const lines = node.text.split('\n');
-                    const maxLineWidth = Math.max(...lines.map(line => ctx.measureText(line).width));
-                    const rectWidth = Math.max(maxLineWidth + padding * 2, 96);
-                    const rectHeight = Math.max(lines.length * 20 + padding, 40);
-                    
-                    // Draw a rounded rectangle for the node
-                    ctx.beginPath();
-                    const radius = 10;
-                    ctx.moveTo(node.x + radius, node.y);
-                    ctx.lineTo(node.x + rectWidth - radius, node.y);
-                    ctx.arc(node.x + rectWidth - radius, node.y + radius, radius, Math.PI * 1.5, Math.PI * 2);
-                    ctx.lineTo(node.x + rectWidth, node.y + rectHeight - radius);
-                    ctx.arc(node.x + rectWidth - radius, node.y + rectHeight - radius, radius, 0, Math.PI * 0.5);
-                    ctx.lineTo(node.x + radius, node.y + rectHeight);
-                    ctx.arc(node.x + radius, node.y + rectHeight - radius, radius, Math.PI * 0.5, Math.PI);
-                    ctx.lineTo(node.x, node.y + radius);
-                    ctx.arc(node.x + radius, node.y + radius, radius, Math.PI, Math.PI * 1.5);
-                    ctx.closePath();
-                    ctx.fill();
-                    ctx.stroke();
-                    
-                    // Draw text inside the node
-                    ctx.fillStyle = colorNodeText;
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    
-                    const lineHeight = 20;
-                    const totalTextHeight = lines.length * lineHeight;
-                    const startY = node.y + rectHeight / 2 - totalTextHeight / 2 + lineHeight / 2;
-                    
-                    // Show cursor for editing node
-                    if (node.id === editingNodeId) {
-                        if (textSelected) {
-                            // Draw pink selection background
-                            ctx.fillStyle = '#ffc0cb';
-                            ctx.fillRect(node.x + 5, node.y + 5, rectWidth - 10, rectHeight - 10);
-                            ctx.fillStyle = colorNodeText;
-                        }
-                        
-                        if (textSelected) {
-                            // Draw multiline text
-                            lines.forEach((line, i) => {
-                                ctx.fillText(line, node.x + rectWidth / 2, startY + i * lineHeight);
-                            });
-                        } else {
-                            // Draw text with cursor
-                            const beforeCursor = node.text.substring(0, cursorPosition);
-                            const beforeLines = beforeCursor.split('\n');
-                            const currentLineIndex = beforeLines.length - 1;
-                            const currentLineText = beforeLines[currentLineIndex];
-                            
-                            // Draw all lines
-                            lines.forEach((line, i) => {
-                                ctx.fillText(line, node.x + rectWidth / 2, startY + i * lineHeight);
-                            });
-                            
-                            // Draw blinking cursor
-                            if (Math.floor(Date.now() / 400) % 2) {
-                                const cursorLineY = startY + currentLineIndex * lineHeight;
-                                const beforeWidth = ctx.measureText(currentLineText).width;
-                                const cursorX = node.x + rectWidth / 2 - ctx.measureText(lines[currentLineIndex]).width / 2 + beforeWidth;
-                                ctx.fillRect(cursorX, cursorLineY - 10, 2, 20);
-                            }
-                        }
-                    } else {
-                        // Draw multiline text for non-editing nodes
-                        lines.forEach((line, i) => {
-                            ctx.fillText(line, node.x + rectWidth / 2, startY + i * lineHeight);
-                        });
-                    }
-                    
-                    // Update node dimensions for hit testing
-                    node.width = rectWidth;
-                    node.height = rectHeight;
-                    // Reset shadow for next operations
-                    ctx.shadowBlur = 0;
-                    ctx.shadowOffsetY = 0;
-                }
-                
-                // Restore transformation
-                ctx.restore();
+            const drawConnectionLineToCursor = () => {
+                const startNode = findNodeById(state.selectedNodeId);
+                if (!startNode) return;
 
-                // Update zoom indicator
-                if (zoomIndicator) {
-                    zoomIndicator.textContent = `${Math.round(zoomScale * 100)}%`;
-                }
-            }
+                const start = { x: startNode.x + startNode.width / 2, y: startNode.y + startNode.height / 2 };
+                const end = screenToWorld(state.dragStart.x, state.dragStart.y);
 
-            // Hit test to see if a click is inside a node
-            function isInsideNode(x, y) {
-                // Adjust coordinates for zoom and pan
-                const adjustedX = (x - panX) / zoomScale;
-                const adjustedY = (y - panY) / zoomScale;
-                
-                for (const node of nodes) {
-                    // Hit test logic to check if a point (x, y) is inside the node's bounds
-                    if (adjustedX > node.x && adjustedX < node.x + node.width &&
-                        adjustedY > node.y && adjustedY < node.y + node.height) {
-                        return node.id;
-                    }
-                }
-                return null;
-            }
+                ctx.strokeStyle = getCssVar('--accent');
+                ctx.lineWidth = 3;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.moveTo(start.x, start.y);
+                ctx.lineTo(end.x, end.y);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            };
 
-            // Hit test to see if a click is on a connection line
-            function isOnConnection(x, y) {
-                // Convert screen coords to canvas (world) coords
-                const adjustedX = (x - panX) / zoomScale;
-                const adjustedY = (y - panY) / zoomScale;
-                // Keep hit tolerance roughly constant in screen space
-                const tolerance = 8 / zoomScale;
-                const segDist = (px, py, x1, y1, x2, y2) => {
-                    const A = px - x1;
-                    const B = py - y1;
-                    const C = x2 - x1;
-                    const D = y2 - y1;
-                    const dot = A * C + B * D;
-                    const lenSq = C * C + D * D;
-                    let t = lenSq !== 0 ? dot / lenSq : -1;
-                    t = Math.max(0, Math.min(1, t));
-                    const xx = x1 + t * C;
-                    const yy = y1 + t * D;
-                    const dx = px - xx;
-                    const dy = py - yy;
-                    return Math.hypot(dx, dy);
+            // --- State & History ---
+            const saveState = () => {
+                const snapshot = JSON.stringify({ nodes: state.nodes, nextNodeId: state.nextNodeId });
+                state.historyIndex++;
+                state.history = state.history.slice(0, state.historyIndex);
+                state.history.push(snapshot);
+                updateHistoryButtons();
+                saveToLocalStorage();
+            };
+
+            const saveToLocalStorage = () => {
+                const saveData = {
+                    nodes: state.nodes,
+                    nextNodeId: state.nextNodeId,
+                    zoom: state.zoom,
+                    pan: state.pan,
+                    markdownMode: state.markdownMode
                 };
-                
-                for (const node of nodes) {
-                    if (node.parent !== null) {
-                        const parentNode = nodes.find(n => n.id === node.parent);
-                        if (parentNode) {
-                            const startX = parentNode.x + parentNode.width / 2;
-                            const startY = parentNode.y + parentNode.height / 2;
-                            const endX = node.x + node.width / 2;
-                            const endY = node.y + node.height / 2;
-                            if (curvedLinesEnabled) {
-                                // Approximate the cubic Bezier curve with small segments and test distance
-                                const dx = endX - startX;
-                                const dy = endY - startY;
-                                const controlOffset = Math.min(Math.abs(dx), Math.abs(dy)) * 0.6;
-                                const c1x = startX + controlOffset;
-                                const c1y = startY;
-                                const c2x = endX - controlOffset;
-                                const c2y = endY;
-                                const steps = 20;
-                                let prevX = startX;
-                                let prevY = startY;
-                                for (let i = 1; i <= steps; i++) {
-                                    const t = i / steps;
-                                    // Cubic Bezier formula
-                                    const mt = 1 - t;
-                                    const bx = mt*mt*mt*startX + 3*mt*mt*t*c1x + 3*mt*t*t*c2x + t*t*t*endX;
-                                    const by = mt*mt*mt*startY + 3*mt*mt*t*c1y + 3*mt*t*t*c2y + t*t*t*endY;
-                                    if (segDist(adjustedX, adjustedY, prevX, prevY, bx, by) <= tolerance) {
-                                        return { parentId: node.parent, childId: node.id };
-                                    }
-                                    prevX = bx;
-                                    prevY = by;
-                                }
-                            } else {
-                                if (segDist(adjustedX, adjustedY, startX, startY, endX, endY) <= tolerance) {
-                                    return { parentId: node.parent, childId: node.id };
-                                }
-                            }
-                        }
-                    }
-                }
-                return null;
-            }
+                localStorage.setItem('mindmap-data', JSON.stringify(saveData));
+            };
 
-            // Clean up connection inconsistencies
-            function cleanupConnections() {
-                // Remove duplicate children and fix parent-child mismatches
-                for (const node of nodes) {
-                    // Remove duplicate children
-                    node.children = [...new Set(node.children)];
-                    
-                    // Ensure all children exist and have this node as parent
-                    node.children = node.children.filter(childId => {
-                        const child = nodes.find(n => n.id === childId);
-                        if (!child) return false; // Child node doesn't exist
-                        if (child.parent !== node.id) {
-                            // Fix the parent reference
-                            child.parent = node.id;
+            const loadFromLocalStorage = () => {
+                const saved = localStorage.getItem('mindmap-data');
+                if (saved) {
+                    try {
+                        const data = JSON.parse(saved);
+                        state.nodes = data.nodes || [];
+                        state.nextNodeId = data.nextNodeId || 1;
+                        state.zoom = data.zoom || 1;
+                        state.pan = data.pan || { x: 0, y: 0 };
+                        if (data.markdownMode !== undefined) {
+                            state.markdownMode = data.markdownMode;
                         }
                         return true;
-                    });
-                    
-                    // If node has a parent, ensure parent exists and has this node as child
-                    if (node.parent !== null) {
-                        const parent = nodes.find(n => n.id === node.parent);
-                        if (parent) {
-                            if (!parent.children.includes(node.id)) {
-                                parent.children.push(node.id);
-                            }
-                        } else {
-                            // Parent doesn't exist, remove the reference
-                            node.parent = null;
-                        }
+                    } catch (e) {
+                        console.error('Failed to load saved data:', e);
                     }
                 }
-            }
+                return false;
+            };
 
-            // --- Node Operations ---
+            const undo = () => {
+                if (state.historyIndex > 0) {
+                    state.historyIndex--;
+                    loadState(state.history[state.historyIndex]);
+                }
+            };
 
-            // Creates a new node and adds it to the mind map
-            function createNode(x, y, text = 'New Node', parentId = null, autoEdit = false) {
-                // Calculate initial dimensions
-                ctx.font = '16px "Inter", sans-serif';
-                const textWidth = ctx.measureText(text).width;
-                const padding = 15;
-                
+            const redo = () => {
+                if (state.historyIndex < state.history.length - 1) {
+                    state.historyIndex++;
+                    loadState(state.history[state.historyIndex]);
+                }
+            };
+            
+            const loadState = (snapshot) => {
+                const loaded = JSON.parse(snapshot);
+                state.nodes = loaded.nodes;
+                state.nextNodeId = loaded.nextNodeId;
+                state.selectedNodeId = null;
+                state.editingNodeId = null;
+                hideNodeEditor();
+                updateHistoryButtons();
+                requestRedraw();
+            };
+
+            const updateHistoryButtons = () => {
+                dom.undoBtn.disabled = state.historyIndex <= 0;
+                dom.redoBtn.disabled = state.historyIndex >= state.history.length - 1;
+            };
+
+            // --- Node Management ---
+            const createNode = (x, y, text = 'New Idea', parentId = null) => {
                 const newNode = {
-                    id: nextNodeId++,
-                    text: text,
-                    x: x,
-                    y: y,
-                    parent: parentId,
-                    children: [],
-                    width: textWidth + padding * 2,
-                    height: 40
+                    id: state.nextNodeId++,
+                    text,
+                    x, y,
+                    width: 0, height: 0,
+                    parentId,
                 };
-                nodes.push(newNode);
+                updateNodeDimensions(newNode);
+                state.nodes.push(newNode);
+                return newNode;
+            };
 
-                if (parentId !== null) {
-                    const parentNode = nodes.find(n => n.id === parentId);
-                    if (parentNode) {
-                        parentNode.children.push(newNode.id);
-                    }
+            const deleteNode = (nodeId) => {
+                const children = state.nodes.filter(n => n.parentId === nodeId).map(n => n.id);
+                children.forEach(deleteNode);
+                state.nodes = state.nodes.filter(n => n.id !== nodeId);
+            };
+
+            const updateNodeDimensions = (node) => {
+                ctx.font = `500 ${FONT_SIZE}px sans-serif`;
+                if (state.markdownMode) {
+                    const dimensions = measureMarkdownText(ctx, node.text);
+                    node.width = dimensions.width + NODE_PADDING * 2;
+                    node.height = dimensions.height + NODE_PADDING * 2;
+                } else {
+                    const lines = node.text.split('\n');
+                    const maxWidth = Math.max(...lines.map(line => ctx.measureText(line).width), 80);
+                    const lineHeight = FONT_SIZE * 1.4;
+                    node.width = maxWidth + NODE_PADDING * 1.5;
+                    node.height = lines.length * lineHeight + NODE_PADDING * 2;
                 }
+            };
+
+            const updateEditorSize = () => {
+                if (!state.editingNodeId) return;
+                const node = findNodeById(state.editingNodeId);
+                if (!node) return;
                 
-                if (autoEdit) {
-                    editingNodeId = newNode.id;
-                    selectedNodeId = newNode.id;
-                    textSelected = false;
-                    cursorPosition = 0;
-                }
+                const screenPos = worldToScreen(node.x, node.y);
+                nodeEditor.style.left = `${screenPos.x}px`;
+                nodeEditor.style.top = `${screenPos.y}px`;
+                nodeEditor.style.width = `${node.width * state.zoom}px`;
+                nodeEditor.style.height = `${node.height * state.zoom}px`;
+            };
+
+            const startEditingNode = (nodeId) => {
+                const node = findNodeById(nodeId);
+                if (!node) return;
+
+                state.editingNodeId = nodeId;
+                const screenPos = worldToScreen(node.x, node.y);
                 
-                draw();
-                return newNode.id;
-            }
+                nodeEditor.value = node.text;
+                nodeEditor.style.fontSize = `${FONT_SIZE * state.zoom}px`;
+                nodeEditor.style.padding = `${NODE_PADDING * state.zoom}px`;
+                nodeEditor.style.lineHeight = `${FONT_SIZE * 1.4 * state.zoom}px`;
+                nodeEditor.classList.remove('hidden');
+                updateEditorSize();
+                nodeEditor.focus();
+                nodeEditor.select();
+                requestRedraw();
+            };
 
-            // Deletes a node and all its children
-            function deleteNode(nodeId) {
-                const nodeToDelete = nodes.find(n => n.id === nodeId);
-                if (!nodeToDelete) return;
-
-                const nodesToDelete = [nodeId];
-                let queue = [...nodeToDelete.children];
-
-                while (queue.length > 0) {
-                    const childId = queue.shift();
-                    nodesToDelete.push(childId);
-                    const childNode = nodes.find(n => n.id === childId);
-                    if (childNode) {
-                        queue = queue.concat(childNode.children);
-                    }
-                }
-
-                // Filter out all nodes to be deleted
-                nodes = nodes.filter(n => !nodesToDelete.includes(n.id));
-
-                // Remove from parent's children array
-                if (nodeToDelete.parent !== null) {
-                    const parentNode = nodes.find(n => n.id === nodeToDelete.parent);
-                    if (parentNode) {
-                        parentNode.children = parentNode.children.filter(childId => childId !== nodeId);
-                    }
-                }
-
-                draw();
-            }
-
-            // Deletes a connection between two nodes
-            function deleteConnection(parentId, childId) {
-                const parentNode = nodes.find(n => n.id === parentId);
-                const childNode = nodes.find(n => n.id === childId);
-                
-                if (parentNode && childNode) {
-                    // Remove child from parent's children array
-                    parentNode.children = parentNode.children.filter(id => id !== childId);
-                    // Remove parent reference from child
-                    childNode.parent = null;
-                    draw();
-                }
-            }
-
-            // Renames a node
-            function renameNode(nodeId, newText) {
-                const node = nodes.find(n => n.id === nodeId);
+            const finishEditingNode = () => {
+                if (!state.editingNodeId) return;
+                const node = findNodeById(state.editingNodeId);
                 if (node) {
-                    node.text = newText;
-                    draw();
+                    node.text = nodeEditor.value;
+                    saveState();
                 }
-            }
+                hideNodeEditor();
+                requestRedraw();
+            };
             
-            // --- Event Listeners ---
-            
-            // Note: Right-click context menu is handled on the canvas element below; do not block it globally
-            
-            // Initialize the canvas size
-            resizeCanvas();
-            window.addEventListener('resize', resizeCanvas);
-            
-            // Continuous redraw for blinking cursor
-            setInterval(() => {
-                if (editingNodeId !== null && !textSelected) {
-                    draw();
-                }
-            }, 200);
-            
-            // Reset position to focus on first node
-            resetPositionBtn.addEventListener('click', () => {
-                if (nodes.length > 0) {
-                    const firstNode = nodes[0];
-                    panX = canvas.width / 2 - (firstNode.x + firstNode.width / 2) * zoomScale;
-                    panY = canvas.height / 2 - (firstNode.y + firstNode.height / 2) * zoomScale;
-                    draw();
-                }
-            });
+            const hideNodeEditor = () => {
+                state.editingNodeId = null;
+                nodeEditor.classList.add('hidden');
+            };
 
-            // Create initial node when the button is clicked
-            createNodeBtn.addEventListener('click', () => {
-                // Place the first node in the center of the canvas
-                if (nodes.length === 0) {
-                    createNode(canvas.width / 2 - 50, canvas.height / 2 - 20, "Main Idea");
-                } else {
-                    // For subsequent nodes, create them near the top-left
-                    createNode(50, 50);
-                }
-            });
+            // --- Event Handlers ---
+            const setupEventListeners = () => {
+                canvas.addEventListener('mousedown', onMouseDown);
+                canvas.addEventListener('mousemove', onMouseMove);
+                canvas.addEventListener('mouseup', onMouseUp);
+                canvas.addEventListener('mouseleave', onMouseUp);
+                canvas.addEventListener('wheel', onWheel);
+                canvas.addEventListener('dblclick', onDoubleClick);
+                canvas.addEventListener('contextmenu', onContextMenu);
 
-            // Handle scroll wheel for zooming
-            canvas.addEventListener('wheel', (e) => {
-                e.preventDefault();
-                const rect = canvas.getBoundingClientRect();
-                const mouseX = e.clientX - rect.left;
-                const mouseY = e.clientY - rect.top;
-                
-                const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
-                const newZoom = Math.max(0.1, Math.min(3, zoomScale * zoomFactor));
-                
-                // Adjust pan to zoom towards mouse position
-                panX = mouseX - (mouseX - panX) * (newZoom / zoomScale);
-                panY = mouseY - (mouseY - panY) * (newZoom / zoomScale);
-                
-                zoomScale = newZoom;
-                draw();
-            });
-
-            // Zoom buttons
-            if (zoomInBtn && zoomOutBtn) {
-                zoomInBtn.addEventListener('click', () => {
-                    const rect = canvas.getBoundingClientRect();
-                    const mouseX = rect.width / 2;
-                    const mouseY = rect.height / 2;
-                    const newZoom = Math.min(3, zoomScale * 1.1);
-                    panX = mouseX - (mouseX - panX) * (newZoom / zoomScale);
-                    panY = mouseY - (mouseY - panY) * (newZoom / zoomScale);
-                    zoomScale = newZoom;
-                    draw();
-                });
-                zoomOutBtn.addEventListener('click', () => {
-                    const rect = canvas.getBoundingClientRect();
-                    const mouseX = rect.width / 2;
-                    const mouseY = rect.height / 2;
-                    const newZoom = Math.max(0.1, zoomScale / 1.1);
-                    panX = mouseX - (mouseX - panX) * (newZoom / zoomScale);
-                    panY = mouseY - (mouseY - panY) * (newZoom / zoomScale);
-                    zoomScale = newZoom;
-                    draw();
-                });
-            }
-
-            // Handle mouse down event on canvas for dragging
-            canvas.addEventListener('mousedown', (e) => {
-                // Only allow left-click dragging
-                if (e.button !== 0) return;
-                
-                const rect = canvas.getBoundingClientRect();
-                const mouseX = e.clientX - rect.left;
-                const mouseY = e.clientY - rect.top;
-                const clickedNodeId = isInsideNode(mouseX, mouseY);
-                
-                // Auto-save if clicking away from editing node
-                if (editingNodeId !== null && clickedNodeId !== editingNodeId) {
-                    editingNodeId = null;
-                    textSelected = false;
-                }
-                
-                // Handle Ctrl/Meta + click for multi-selection
-                if ((e.ctrlKey || e.metaKey) && clickedNodeId !== null) {
-                    // If there's a selectedNodeId that's not in multiSelectedNodes, add it first
-                    if (selectedNodeId !== null && !multiSelectedNodes.includes(selectedNodeId)) {
-                        multiSelectedNodes.push(selectedNodeId);
-                    }
-                    
-                    if (multiSelectedNodes.includes(clickedNodeId)) {
-                        // Remove from selection
-                        multiSelectedNodes = multiSelectedNodes.filter(id => id !== clickedNodeId);
-                    } else {
-                        // Add to selection
-                        multiSelectedNodes.push(clickedNodeId);
-                    }
-                    selectedNodeId = clickedNodeId;
-                    draw();
-                    return; // Don't start dragging when Ctrl+clicking
-                }
-                
-                // Set selected node on single click, clear if clicking empty space
-                if (clickedNodeId !== null) {
-                    selectedNodeId = clickedNodeId;
-                    multiSelectedNodes = []; // Clear multi-selection on normal click
-                } else {
-                    selectedNodeId = null;
-                    multiSelectedNodes = [];
-                }
-                
-                draggedNodeId = clickedNodeId;
-                lastMouseX = mouseX;
-                lastMouseY = mouseY;
-                contextMenu.style.display = 'none'; // Hide menu on drag start
-                canvas.style.cursor = 'grabbing';
-                draw();
-            });
-
-            // Handle mouse move event for dragging and cursor updates
-            canvas.addEventListener('mousemove', (e) => {
-                const rect = canvas.getBoundingClientRect();
-                const mouseX = e.clientX - rect.left;
-                const mouseY = e.clientY - rect.top;
-                
-                // Update cursor based on hover state when not dragging
-                if (lastMouseX === undefined) {
-                    const hoveredNodeId = isInsideNode(mouseX, mouseY);
-                    canvas.style.cursor = hoveredNodeId !== null ? 'default' : 'grab';
-                }
-                
-                if (lastMouseX !== undefined && lastMouseY !== undefined) {
-                    if (draggedNodeId !== null) {
-                        // Move the selected node
-                        const nodeToDrag = nodes.find(n => n.id === draggedNodeId);
-                        if (nodeToDrag) {
-                            nodeToDrag.x += (mouseX - lastMouseX) / zoomScale;
-                            nodeToDrag.y += (mouseY - lastMouseY) / zoomScale;
+                nodeEditor.addEventListener('blur', finishEditingNode);
+                nodeEditor.addEventListener('keydown', e => {
+                    if (e.key === 'Enter') {
+                        if (e.shiftKey) {
+                            // Allow new line with Shift+Enter
+                            setTimeout(() => {
+                                autoResizeEditor();
+                            }, 0);
+                        } else {
+                            e.preventDefault();
+                            finishEditingNode();
                         }
-                    } else {
-                        // Pan the canvas
-                        panX += mouseX - lastMouseX;
-                        panY += mouseY - lastMouseY;
                     }
-                    
-                    lastMouseX = mouseX;
-                    lastMouseY = mouseY;
-                    draw();
-                }
-            });
-
-            // Handle mouse up event to stop dragging
-            canvas.addEventListener('mouseup', () => {
-                draggedNodeId = null;
-                lastMouseX = undefined;
-                lastMouseY = undefined;
-                canvas.style.cursor = 'grab';
-            });
-            
-            // Handle double-click for inline renaming
-            canvas.addEventListener('dblclick', (e) => {
-                const rect = canvas.getBoundingClientRect();
-                const mouseX = e.clientX - rect.left;
-                const mouseY = e.clientY - rect.top;
-                const nodeId = isInsideNode(mouseX, mouseY);
-                if (nodeId !== null) {
-                    if (editingNodeId === nodeId) {
-                        // Double-click while editing - toggle text selection
-                        textSelected = !textSelected;
-                    } else {
-                        // First double-click - start editing
-                        editingNodeId = nodeId;
-                        selectedNodeId = nodeId;
-                        textSelected = false;
-                        const node = nodes.find(n => n.id === nodeId);
-                        cursorPosition = node ? node.text.length : 0;
+                    if (e.key === 'Escape') hideNodeEditor();
+                });
+                
+                nodeEditor.addEventListener('input', () => {
+                    // Update node size in real-time
+                    if (state.editingNodeId) {
+                        const node = findNodeById(state.editingNodeId);
+                        if (node) {
+                            node.text = nodeEditor.value;
+                            updateNodeDimensions(node);
+                            updateEditorSize();
+                            requestRedraw();
+                        }
                     }
-                    draw();
-                }
-            });
+                });
 
-            // Handle keyboard input for editing and connections
-            window.addEventListener('keydown', (e) => {
-                // Handle Delete key for selected nodes
-                if (e.key === 'Delete' && editingNodeId === null && selectedNodeId !== null) {
-                    e.preventDefault();
-                    deleteNode(selectedNodeId);
-                    selectedNodeId = null;
+                dom.addNodeBtn.addEventListener('click', () => {
+                    const center = screenToWorld(canvas.clientWidth / 2, canvas.clientHeight / 2);
+                    const newNode = createNode(center.x, center.y);
+                    state.selectedNodeId = newNode.id;
+                    saveState();
+                    requestRedraw();
+                    startEditingNode(newNode.id);
+                });
+                
+                dom.zoomInBtn.addEventListener('click', () => zoom(1.2));
+                dom.zoomOutBtn.addEventListener('click', () => zoom(0.8));
+                dom.fitViewBtn.addEventListener('click', fitView);
+                dom.undoBtn.addEventListener('click', undo);
+                dom.redoBtn.addEventListener('click', redo);
+                dom.markdownToggle.addEventListener('click', toggleMarkdown);
+                dom.themeToggle.addEventListener('click', toggleTheme);
+                dom.importBtn.addEventListener('click', () => dom.fileInput.click());
+                dom.exportBtn.addEventListener('click', exportAsRXT);
+                dom.fileInput.addEventListener('change', importRXT);
+                dom.cloudSaveBtn.addEventListener('click', showCloudSaveModal);
+                dom.cloudLoadBtn.addEventListener('click', showCloudLoadModal);
+
+                window.addEventListener('resize', resizeCanvas);
+                window.addEventListener('keydown', onKeyDown);
+                document.addEventListener('click', () => hideContextMenu());
+                
+                // Cloud modal event listeners
+                document.getElementById('modalCancel').addEventListener('click', hideCloudModal);
+                document.getElementById('usernameInput').addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        document.getElementById('modalConfirm').click();
+                    }
+                    if (e.key === 'Escape') {
+                        hideCloudModal();
+                    }
+                });
+            };
+
+            const onMouseDown = (e) => {
+                if (e.button === 2) return; // Disable right-click drag
+                
+                hideContextMenu();
+                finishEditingNode();
+                const pos = getMousePos(e);
+                const clickedNodeId = findNodeAt(pos.x, pos.y);
+
+                if (state.connecting) {
+                    if (clickedNodeId && clickedNodeId !== state.selectedNodeId) {
+                        const child = findNodeById(clickedNodeId);
+                        if (child) {
+                            child.parentId = state.selectedNodeId;
+                            saveState();
+                        }
+                    }
+                    state.connecting = false;
+                    requestRedraw();
                     return;
                 }
-                
-                // Handle Enter for connecting nodes
-                if (e.key === 'Enter' && editingNodeId === null && multiSelectedNodes.length > 1) {
-                        e.preventDefault();
-                        // Connect all nodes in sequence
-                        for (let i = 0; i < multiSelectedNodes.length - 1; i++) {
-                            const parentNode = nodes.find(n => n.id === multiSelectedNodes[i]);
-                            const childNode = nodes.find(n => n.id === multiSelectedNodes[i + 1]);
-                            
-                            if (parentNode && childNode) {
-                                // Only connect if not already connected
-                                const isConnectedForward = childNode.parent === parentNode.id;
-                                const isConnectedReverse = parentNode.parent === childNode.id;
-                                
-                                if (!isConnectedForward && !isConnectedReverse) {
-                                    // Only connect if child doesn't already have a parent
-                                    if (childNode.parent === null) {
-                                        childNode.parent = parentNode.id;
-                                        if (!parentNode.children.includes(childNode.id)) {
-                                            parentNode.children.push(childNode.id);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        multiSelectedNodes = [];
-                        cleanupConnections();
-                        draw();
-                        return;
-                }
-                
-                if (editingNodeId !== null) {
-                    e.preventDefault(); // Prevent default browser behavior when editing
-                    const editingNode = nodes.find(n => n.id === editingNodeId);
-                    if (editingNode) {
-                        if (e.key === 'Enter') {
-                            if (e.shiftKey) {
-                                // Shift+Enter: Add new line
-                                if (textSelected) {
-                                    editingNode.text = '\n';
-                                    cursorPosition = 1;
-                                    textSelected = false;
-                                } else {
-                                    editingNode.text = editingNode.text.slice(0, cursorPosition) + '\n' + editingNode.text.slice(cursorPosition);
-                                    cursorPosition++;
-                                }
-                                draw();
-                            } else {
-                                // Regular Enter: Exit editing
-                                editingNodeId = null;
-                                textSelected = false;
-                                draw();
-                            }
-                        } else if (e.key === 'Escape') {
-                            editingNodeId = null;
-                            textSelected = false;
-                            draw();
-                        } else if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
-                            textSelected = true;
-                            draw();
-                        } else if (e.key === 'ArrowLeft') {
-                            if (!textSelected) {
-                                cursorPosition = Math.max(0, cursorPosition - 1);
-                                draw();
-                            }
-                        } else if (e.key === 'ArrowRight') {
-                            if (!textSelected) {
-                                cursorPosition = Math.min(editingNode.text.length, cursorPosition + 1);
-                                draw();
-                            }
-                        } else if (e.key === 'Home') {
-                            cursorPosition = 0;
-                            textSelected = false;
-                            draw();
-                        } else if (e.key === 'End') {
-                            cursorPosition = editingNode.text.length;
-                            textSelected = false;
-                            draw();
-                        } else if (e.key === 'Backspace') {
-                            if (textSelected) {
-                                editingNode.text = '';
-                                cursorPosition = 0;
-                                textSelected = false;
-                            } else if (cursorPosition > 0) {
-                                editingNode.text = editingNode.text.slice(0, cursorPosition - 1) + editingNode.text.slice(cursorPosition);
-                                cursorPosition--;
-                            }
-                            draw();
-                        } else if (e.key === 'Delete') {
-                            if (textSelected) {
-                                editingNode.text = '';
-                                cursorPosition = 0;
-                                textSelected = false;
-                            } else if (cursorPosition < editingNode.text.length) {
-                                editingNode.text = editingNode.text.slice(0, cursorPosition) + editingNode.text.slice(cursorPosition + 1);
-                            }
-                            draw();
-                        } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
-                            if (textSelected) {
-                                editingNode.text = e.key;
-                                cursorPosition = 1;
-                                textSelected = false;
-                            } else {
-                                editingNode.text = editingNode.text.slice(0, cursorPosition) + e.key + editingNode.text.slice(cursorPosition);
-                                cursorPosition++;
-                            }
-                            draw();
+
+                // Check for link click before setting up drag
+                if (clickedNodeId && state.markdownMode) {
+                    const node = findNodeById(clickedNodeId);
+                    if (node) {
+                        const worldPos = screenToWorld(pos.x, pos.y);
+                        const relativeX = worldPos.x - node.x - NODE_PADDING;
+                        const relativeY = worldPos.y - node.y - NODE_PADDING;
+                        const clickedLink = findLinkAtPosition(node.text, relativeX, relativeY);
+                        if (clickedLink) {
+                            window.open(clickedLink, '_blank');
+                            return;
                         }
                     }
                 }
-            });
 
-            // Handle right-click context menu
-            canvas.addEventListener('contextmenu', (e) => {
-                e.preventDefault();
-                const rect = canvas.getBoundingClientRect();
-                const mouseX = e.clientX - rect.left;
-                const mouseY = e.clientY - rect.top;
+                state.selectedNodeId = clickedNodeId;
 
-                selectedNodeId = isInsideNode(mouseX, mouseY);
-                selectedConnectionId = isOnConnection(mouseX, mouseY);
-
-                // Position the menu
-                contextMenu.style.top = `${e.clientY}px`;
-                contextMenu.style.left = `${e.clientX}px`;
-                contextMenu.style.display = 'block';
-
-                // Enable/disable menu options based on selection
-                if (selectedNodeId !== null) {
-                    menuAddBranchBtn.classList.remove('disabled');
-                    menuRenameBtn.classList.remove('disabled');
-                    menuDeleteBtn.classList.remove('disabled');
-                    menuDeleteConnectionBtn.classList.add('disabled');
-                } else if (selectedConnectionId !== null) {
-                    menuAddBranchBtn.classList.add('disabled');
-                    menuRenameBtn.classList.add('disabled');
-                    menuDeleteBtn.classList.add('disabled');
-                    menuDeleteConnectionBtn.classList.remove('disabled');
+                if (clickedNodeId) {
+                    state.isDragging = true;
+                    state.draggingNodeId = clickedNodeId;
                 } else {
-                    menuAddBranchBtn.classList.add('disabled');
-                    menuRenameBtn.classList.add('disabled');
-                    menuDeleteBtn.classList.add('disabled');
-                    menuDeleteConnectionBtn.classList.add('disabled');
+                    state.isPanning = true;
                 }
-            });
+                
+                state.dragStart = { x: pos.x, y: pos.y };
+                requestRedraw();
+            };
 
-            // Hide the menu on any click outside the menu
-            window.addEventListener('click', (e) => {
-                if (!contextMenu.contains(e.target)) {
-                    contextMenu.style.display = 'none';
-                    // Do not force-exit editing on generic clicks; canvas handlers manage that
-                }
-            });
+            const onMouseMove = (e) => {
+                const pos = getMousePos(e);
+                const dx = (pos.x - state.dragStart.x);
+                const dy = (pos.y - state.dragStart.y);
 
-
-            
-            // Toggle for curved/straight lines
-            curvedLinesToggle.addEventListener('click', () => {
-                curvedLinesEnabled = !curvedLinesEnabled;
-                curvedLinesToggle.classList.toggle('bg-indigo-600', curvedLinesEnabled);
-                curvedLinesToggle.classList.toggle('text-white', curvedLinesEnabled);
-                curvedLinesToggle.classList.toggle('border-indigo-600', curvedLinesEnabled);
-                curvedLinesToggle.classList.toggle('bg-gray-100', !curvedLinesEnabled);
-                curvedLinesToggle.classList.toggle('dark:bg-slate-800', !curvedLinesEnabled);
-                curvedLinesToggle.classList.toggle('text-gray-800', !curvedLinesEnabled);
-                curvedLinesToggle.classList.toggle('dark:text-gray-100', !curvedLinesEnabled);
-                curvedLinesToggle.classList.toggle('border-gray-200', !curvedLinesEnabled);
-                curvedLinesToggle.classList.toggle('dark:border-slate-700', !curvedLinesEnabled);
-                draw();
-            });
-
-            // --- Context Menu Actions ---
-
-            menuCreateBtn.addEventListener('click', () => {
-                if (contextMenu.style.display === 'block') {
-                    const rect = canvas.getBoundingClientRect();
-                    const menuX = (parseInt(contextMenu.style.left) - rect.left - panX) / zoomScale;
-                    const menuY = (parseInt(contextMenu.style.top) - rect.top - panY) / zoomScale;
-                    createNode(menuX, menuY);
-                    contextMenu.style.display = 'none';
-                }
-            });
-
-            menuAddBranchBtn.addEventListener('click', () => {
-                if (selectedNodeId !== null && contextMenu.style.display === 'block') {
-                    const selectedNode = nodes.find(n => n.id === selectedNodeId);
-                    if (selectedNode) {
-                        createNode(selectedNode.x + 150, selectedNode.y, '', selectedNode.id, true);
+                // Check if hovering over a link
+                const clickedNodeId = findNodeAt(pos.x, pos.y);
+                if (clickedNodeId && state.markdownMode && !state.isDragging && !state.isPanning) {
+                    const node = findNodeById(clickedNodeId);
+                    if (node) {
+                        const worldPos = screenToWorld(pos.x, pos.y);
+                        const relativeX = worldPos.x - node.x - NODE_PADDING;
+                        const relativeY = worldPos.y - node.y - NODE_PADDING;
+                        const hoveredLink = findLinkAtPosition(node.text, relativeX, relativeY);
+                        canvas.style.cursor = hoveredLink ? 'pointer' : 'default';
                     }
-                    contextMenu.style.display = 'none';
+                } else {
+                    canvas.style.cursor = 'default';
                 }
-            });
 
-            menuDeleteBtn.addEventListener('click', () => {
-                if (selectedNodeId !== null && contextMenu.style.display === 'block') {
-                    deleteNode(selectedNodeId);
-                    selectedNodeId = null;
-                    contextMenu.style.display = 'none';
+                if (state.connecting) {
+                    state.dragStart = { x: pos.x, y: pos.y };
+                    requestRedraw();
+                    return;
                 }
-            });
 
-            menuRenameBtn.addEventListener('click', () => {
-                if (selectedNodeId !== null && contextMenu.style.display === 'block') {
-                    editingNodeId = selectedNodeId;
-                    textSelected = false;
-                    const node = nodes.find(n => n.id === selectedNodeId);
-                    cursorPosition = node ? node.text.length : 0;
-                    contextMenu.style.display = 'none';
-                    draw();
+                if (state.isDragging && state.draggingNodeId) {
+                    const node = findNodeById(state.draggingNodeId);
+                    if (node) {
+                        node.x += dx / state.zoom;
+                        node.y += dy / state.zoom;
+                        requestRedraw();
+                    }
+                } else if (state.isPanning) {
+                    state.pan.x += dx;
+                    state.pan.y += dy;
+                    requestRedraw();
                 }
-            });
+                state.dragStart = { x: pos.x, y: pos.y };
+            };
 
-            menuDeleteConnectionBtn.addEventListener('click', () => {
-                if (selectedConnectionId !== null && contextMenu.style.display === 'block') {
-                    deleteConnection(selectedConnectionId.parentId, selectedConnectionId.childId);
-                    selectedConnectionId = null;
-                    contextMenu.style.display = 'none';
+            const onMouseUp = () => {
+                if (state.isDragging) saveState();
+                if (state.isPanning) saveToLocalStorage();
+                state.isDragging = false;
+                state.isPanning = false;
+                state.draggingNodeId = null;
+            };
+
+            const onWheel = (e) => {
+                e.preventDefault();
+                const pos = getMousePos(e);
+                const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+                zoom(zoomFactor, pos);
+            };
+
+            const onDoubleClick = (e) => {
+                const pos = getMousePos(e);
+                const clickedNodeId = findNodeAt(pos.x, pos.y);
+                if (clickedNodeId) {
+                    startEditingNode(clickedNodeId);
                 }
-            });
+            };
 
-            // Fit to view: zoom/pan to include all nodes with padding
-            function fitToView() {
-                if (nodes.length === 0) return;
-                let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-                for (const n of nodes) {
-                    minX = Math.min(minX, n.x);
-                    minY = Math.min(minY, n.y);
-                    maxX = Math.max(maxX, n.x + (n.width || 100));
-                    maxY = Math.max(maxY, n.y + (n.height || 40));
+
+
+            const onKeyDown = (e) => {
+                if (state.editingNodeId) return;
+
+                if (e.key === 'Escape' && state.connecting) {
+                    state.connecting = false;
+                    requestRedraw();
                 }
-                const padding = 80;
-                const w = maxX - minX + padding * 2;
-                const h = maxY - minY + padding * 2;
-                const scaleX = canvas.width / w;
-                const scaleY = canvas.height / h;
-                const newZoom = Math.max(0.1, Math.min(3, Math.min(scaleX, scaleY)));
-                zoomScale = newZoom;
-                const worldCenterX = minX + (maxX - minX) / 2;
-                const worldCenterY = minY + (maxY - minY) / 2;
-                panX = canvas.width / 2 - worldCenterX * zoomScale;
-                panY = canvas.height / 2 - worldCenterY * zoomScale;
-                draw();
-            }
-            fitViewBtn.addEventListener('click', fitToView);
 
-            // Theme toggle (persist in localStorage)
-            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-            const savedTheme = localStorage.getItem('theme');
-            if ((savedTheme === 'dark') || (!savedTheme && prefersDark)) {
-                document.documentElement.classList.add('dark');
-            }
-            themeToggle.addEventListener('click', () => {
-                document.documentElement.classList.toggle('dark');
-                const isDark = document.documentElement.classList.contains('dark');
-                localStorage.setItem('theme', isDark ? 'dark' : 'light');
-                draw();
-            });
+                if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
+                    e.preventDefault();
+                    dom.fileInput.click();
+                }
+                if (e.key === 'Delete' || e.key === 'Backspace') {
+                    if (state.selectedNodeId) {
+                        deleteNode(state.selectedNodeId);
+                        state.selectedNodeId = null;
+                        saveState();
+                        requestRedraw();
+                    }
+                }
+                if ((e.ctrlKey || e.metaKey) && e.key === 'z') undo();
+                if ((e.ctrlKey || e.metaKey) && e.key === 'y') redo();
+            };
 
-            // Download functionality
-            function downloadMindMap() {
-                const data = {
-                    nodes,
-                    zoomScale,
-                    panX,
-                    panY,
-                    curvedLinesEnabled,
-                    nextNodeId
+            const onContextMenu = (e) => {
+                e.preventDefault();
+                const pos = getMousePos(e);
+                const nodeId = findNodeAt(pos.x, pos.y);
+                state.selectedNodeId = nodeId;
+                requestRedraw();
+                showContextMenu(e.clientX, e.clientY, nodeId);
+            };
+
+            // --- UI & Menus ---
+            const showContextMenu = (x, y, nodeId) => {
+                contextMenu.style.left = `${x}px`;
+                contextMenu.style.top = `${y}px`;
+                contextMenu.classList.remove('hidden');
+                
+                const menuAddNode = document.getElementById('menu-add-node');
+                const menuAddChild = document.getElementById('menu-add-child');
+                const menuConnect = document.getElementById('menu-connect');
+                const menuDeleteNode = document.getElementById('menu-delete-node');
+                const menuDisconnect = document.getElementById('menu-disconnect');
+
+                menuAddNode.style.display = 'block';
+                menuAddNode.onclick = () => {
+                    const pos = screenToWorld(x, y);
+                    const newNode = createNode(pos.x, pos.y);
+                    state.selectedNodeId = newNode.id;
+                    saveState();
+                    requestRedraw();
+                    startEditingNode(newNode.id);
                 };
-                const now = new Date();
-                const filename = `${now.getDate().toString().padStart(2, '0')}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getFullYear().toString().slice(-2)}${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}.rxt`;
-                const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                a.click();
-                URL.revokeObjectURL(url);
-            }
 
-            // Open functionality
-            function openMindMap(file) {
+                if (nodeId) {
+                    menuAddChild.style.display = 'block';
+                    menuConnect.style.display = 'block';
+                    menuDeleteNode.style.display = 'block';
+                    const node = findNodeById(nodeId);
+                    menuDisconnect.style.display = node.parentId ? 'block' : 'none';
+
+                    menuAddChild.onclick = () => {
+                        const parent = findNodeById(nodeId);
+                        const child = createNode(parent.x + parent.width + 50, parent.y, 'New Child', nodeId);
+                        saveState();
+                        startEditingNode(child.id);
+                    };
+                    menuConnect.onclick = () => {
+                        state.connecting = true;
+                    };
+                    menuDeleteNode.onclick = () => {
+                        deleteNode(nodeId);
+                        state.selectedNodeId = null;
+                        saveState();
+                        requestRedraw();
+                    };
+                    menuDisconnect.onclick = () => {
+                        node.parentId = null;
+                        saveState();
+                        requestRedraw();
+                    };
+                } else {
+                    menuAddChild.style.display = 'none';
+                    menuConnect.style.display = 'none';
+                    menuDeleteNode.style.display = 'none';
+                    menuDisconnect.style.display = 'none';
+                }
+            };
+
+            const hideContextMenu = () => contextMenu.classList.add('hidden');
+
+            const importRXT = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                
                 const reader = new FileReader();
-                reader.onload = (e) => {
+                reader.onload = (event) => {
                     try {
-                        const data = JSON.parse(e.target.result);
-                        nodes = data.nodes || [];
-                        zoomScale = data.zoomScale || 1;
-                        panX = data.panX || 0;
-                        panY = data.panY || 0;
-                        curvedLinesEnabled = data.curvedLinesEnabled !== undefined ? data.curvedLinesEnabled : true;
-                        nextNodeId = data.nextNodeId || (Math.max(...nodes.map(n => n.id), 0) + 1);
-                        
-                        // Update curved lines toggle appearance
-                        curvedLinesToggle.classList.toggle('bg-indigo-600', curvedLinesEnabled);
-                        curvedLinesToggle.classList.toggle('text-white', curvedLinesEnabled);
-                        curvedLinesToggle.classList.toggle('border-indigo-600', curvedLinesEnabled);
-                        curvedLinesToggle.classList.toggle('bg-gray-100', !curvedLinesEnabled);
-                        curvedLinesToggle.classList.toggle('dark:bg-slate-800', !curvedLinesEnabled);
-                        curvedLinesToggle.classList.toggle('text-gray-800', !curvedLinesEnabled);
-                        curvedLinesToggle.classList.toggle('dark:text-gray-100', !curvedLinesEnabled);
-                        curvedLinesToggle.classList.toggle('border-gray-200', !curvedLinesEnabled);
-                        curvedLinesToggle.classList.toggle('dark:border-slate-700', !curvedLinesEnabled);
-                        
-                        draw();
+                        const data = JSON.parse(event.target.result);
+                        state.nodes = data.nodes || [];
+                        state.nextNodeId = data.metadata?.nextNodeId || 1;
+                        if (data.settings) {
+                            state.zoom = data.settings.zoom || 1;
+                            state.pan = data.settings.pan || { x: 0, y: 0 };
+                            if (data.settings.theme) {
+                                const isDark = data.settings.theme === 'dark';
+                                document.documentElement.classList.toggle('dark', isDark);
+                                dom.themeIconLight.classList.toggle('hidden', isDark);
+                                dom.themeIconDark.classList.toggle('hidden', !isDark);
+                            }
+                        }
+                        state.selectedNodeId = null;
+                        dom.zoomIndicator.textContent = `${Math.round(state.zoom * 100)}%`;
+                        saveState();
+                        requestRedraw();
                     } catch (error) {
-                        alert('Error opening file: Invalid format');
+                        alert('Invalid file format');
                     }
                 };
                 reader.readAsText(file);
-            }
+                e.target.value = '';
+            };
 
-            // Event listeners for download and open
-            downloadBtn.addEventListener('click', downloadMindMap);
-            openBtn.addEventListener('click', () => fileInput.click());
-            fileInput.addEventListener('change', (e) => {
-                if (e.target.files.length > 0) {
-                    openMindMap(e.target.files[0]);
-                    e.target.value = ''; // Reset input
-                }
-            });
-
-            // Help modal
-            function showHelp(show) {
-                if (!helpModal) return;
-                helpModal.classList.toggle('hidden', !show);
-                helpModal.classList.toggle('flex', show);
-            }
-            if (helpBtn && helpCloseBtn && helpModal) {
-                helpBtn.addEventListener('click', () => showHelp(true));
-                helpCloseBtn.addEventListener('click', () => showHelp(false));
-                helpModal.addEventListener('click', (e) => {
-                    if (e.target === helpModal || e.target === helpModal.firstElementChild) showHelp(false);
+            const showCloudSaveModal = () => {
+                document.getElementById('modalTitle').textContent = 'Save to Cloud';
+                document.getElementById('usernameInput').placeholder = 'Enter unique username';
+                document.getElementById('cloudModal').classList.remove('hidden');
+                document.getElementById('usernameInput').focus();
+                
+                document.getElementById('modalConfirm').onclick = () => {
+                    const username = document.getElementById('usernameInput').value.trim();
+                    if (username) {
+                        saveToCloud(username);
+                        hideCloudModal();
+                    } else {
+                        alert('Please enter a username');
+                    }
+                };
+            };
+            
+            const showCloudLoadModal = () => {
+                document.getElementById('modalTitle').textContent = 'Load from Cloud';
+                document.getElementById('usernameInput').placeholder = 'Enter your username';
+                document.getElementById('cloudModal').classList.remove('hidden');
+                document.getElementById('usernameInput').focus();
+                
+                document.getElementById('modalConfirm').onclick = () => {
+                    const username = document.getElementById('usernameInput').value.trim();
+                    if (username) {
+                        loadFromCloud(username);
+                        hideCloudModal();
+                    } else {
+                        alert('Please enter a username');
+                    }
+                };
+            };
+            
+            const hideCloudModal = () => {
+                document.getElementById('cloudModal').classList.add('hidden');
+                document.getElementById('usernameInput').value = '';
+            };
+            
+            const saveToCloud = (username) => {
+                const exportData = {
+                    timestamp: new Date().toISOString(),
+                    settings: {
+                        zoom: state.zoom,
+                        pan: state.pan,
+                        theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+                    },
+                    nodes: state.nodes,
+                    metadata: {
+                        nextNodeId: state.nextNodeId,
+                        selectedNodeId: state.selectedNodeId,
+                        version: '1.0'
+                    }
+                };
+                
+                const dataString = JSON.stringify(exportData);
+                saveTextToSheet(username, dataString);
+            };
+            
+            const loadFromCloud = (username) => {
+                loadTextFromSheet(username, (data) => {
+                    if (data) {
+                        try {
+                            const parsedData = JSON.parse(data);
+                            state.nodes = parsedData.nodes || [];
+                            state.nextNodeId = parsedData.metadata?.nextNodeId || 1;
+                            if (parsedData.settings) {
+                                state.zoom = parsedData.settings.zoom || 1;
+                                state.pan = parsedData.settings.pan || { x: 0, y: 0 };
+                                if (parsedData.settings.theme) {
+                                    const isDark = parsedData.settings.theme === 'dark';
+                                    document.documentElement.classList.toggle('dark', isDark);
+                                    dom.themeIconLight.classList.toggle('hidden', isDark);
+                                    dom.themeIconDark.classList.toggle('hidden', !isDark);
+                                }
+                            }
+                            state.selectedNodeId = null;
+                            dom.zoomIndicator.textContent = `${Math.round(state.zoom * 100)}%`;
+                            saveState();
+                            requestRedraw();
+                            alert('Data loaded successfully from cloud!');
+                        } catch (error) {
+                            alert('Failed to load data: Invalid format');
+                        }
+                    } else {
+                        alert('No data found for this username');
+                    }
                 });
-            }
-        };
+            };
+
+            const exportAsRXT = () => {
+                const now = new Date();
+                const timestamp = `${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                
+                const exportData = {
+                    timestamp: now.toISOString(),
+                    settings: {
+                        zoom: state.zoom,
+                        pan: state.pan,
+                        theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+                    },
+                    nodes: state.nodes,
+                    preview: {
+                        canvasWidth: canvas.clientWidth,
+                        canvasHeight: canvas.clientHeight,
+                        nodeCount: state.nodes.length
+                    },
+                    metadata: {
+                        nextNodeId: state.nextNodeId,
+                        selectedNodeId: state.selectedNodeId,
+                        version: '1.0'
+                    }
+                };
+                
+                const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/octet-stream' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `mindmap-${timestamp}.rxt`;
+                a.click();
+                URL.revokeObjectURL(url);
+            };
+
+            const toggleTheme = () => {
+                document.documentElement.classList.toggle('dark');
+                const isDark = document.documentElement.classList.contains('dark');
+                dom.themeIconLight.classList.toggle('hidden', isDark);
+                dom.themeIconDark.classList.toggle('hidden', !isDark);
+                localStorage.setItem('mindmap-theme', isDark ? 'dark' : 'light');
+                requestRedraw();
+            };
+
+            const toggleMarkdown = () => {
+                state.markdownMode = !state.markdownMode;
+                dom.markdownIconOff.classList.toggle('hidden', state.markdownMode);
+                dom.markdownIconOn.classList.toggle('hidden', !state.markdownMode);
+                localStorage.setItem('mindmap-markdown', state.markdownMode ? 'on' : 'off');
+                saveToLocalStorage();
+                requestRedraw();
+            };
+
+            const imageCache = new Map();
+            
+            const loadImage = (url) => {
+                if (imageCache.has(url)) {
+                    return imageCache.get(url);
+                }
+                
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = () => requestRedraw();
+                img.src = url;
+                imageCache.set(url, img);
+                return img;
+            };
+            
+            const findLinkAtPosition = (text, x, y) => {
+                const parts = parseMarkdown(text);
+                let currentX = 0;
+                let currentY = FONT_SIZE * 0.8;
+                const lineHeight = FONT_SIZE * 1.4;
+                let currentLineHeight = lineHeight;
+                
+                ctx.font = `500 ${FONT_SIZE}px Inter`;
+                
+                for (const part of parts) {
+                    if (part.text === '\n') {
+                        currentY += currentLineHeight;
+                        currentX = 0;
+                        currentLineHeight = lineHeight;
+                        continue;
+                    }
+                    
+                    if (part.image) {
+                        const maxWidth = 150;
+                        const maxHeight = 100;
+                        currentX += maxWidth + 5;
+                        currentLineHeight = Math.max(currentLineHeight, maxHeight + 10);
+                        continue;
+                    }
+                    
+                    if (part.link) {
+                        const textWidth = ctx.measureText(part.text).width;
+                        if (x >= currentX && x <= currentX + textWidth && 
+                            y >= currentY - FONT_SIZE * 0.2 && y <= currentY + FONT_SIZE * 0.8) {
+                            return part.link;
+                        }
+                    }
+                    
+                    currentX += ctx.measureText(part.text).width;
+                }
+                
+                return null;
+            };
+
+            const renderMarkdownText = (ctx, text, x, y) => {
+                const parts = parseMarkdown(text);
+                let currentX = x;
+                let currentY = y + FONT_SIZE * 0.8;
+                const lineHeight = FONT_SIZE * 1.4;
+                let currentLineHeight = lineHeight;
+                
+                parts.forEach(part => {
+                    if (part.text === '\n') {
+                        currentY += currentLineHeight;
+                        currentX = x;
+                        currentLineHeight = lineHeight;
+                        return;
+                    }
+                    
+                    // Handle images
+                    if (part.image) {
+                        const img = loadImage(part.image);
+                        if (img.complete && img.naturalWidth > 0) {
+                            const maxWidth = 150;
+                            const maxHeight = 100;
+                            let { width, height } = img;
+                            
+                            if (width > maxWidth) {
+                                height = (height * maxWidth) / width;
+                                width = maxWidth;
+                            }
+                            if (height > maxHeight) {
+                                width = (width * maxHeight) / height;
+                                height = maxHeight;
+                            }
+                            
+                            ctx.drawImage(img, currentX, currentY, width, height);
+                            currentX += width + 5; // Add small spacing between inline images
+                            currentLineHeight = Math.max(currentLineHeight, height + 10); // Adjust line height for images
+                        }
+                        return;
+                    }
+                    
+                    ctx.save();
+                    ctx.fillStyle = getCssVar('--node-text');
+                    
+                    // Handle headings
+                    if (part.heading) {
+                        const headingSizes = [24, 20, 18, 16, 14, 12];
+                        const headingSize = headingSizes[part.heading - 1] || 12;
+                        ctx.font = `700 ${headingSize}px sans-serif`;
+                        ctx.fillStyle = getCssVar('--node-text');
+                    }
+
+                    // Handle regular formatting
+                    else {
+                        let fontWeight = '500';
+                        let fontStyle = '';
+                        
+                        if (part.bold && part.italic) {
+                            fontWeight = '700';
+                            fontStyle = 'italic ';
+                        } else if (part.bold) {
+                            fontWeight = '700';
+                        } else if (part.italic) {
+                            fontStyle = 'italic ';
+                        }
+                        
+                        ctx.font = `${fontStyle}${fontWeight} ${FONT_SIZE}px sans-serif`;
+                        
+                        if (part.code) {
+                            ctx.font = `500 ${FONT_SIZE}px monospace`;
+                            ctx.fillStyle = '#22c55e';
+                        }
+
+                        if (part.link) {
+                            ctx.fillStyle = '#0066cc';
+                            ctx.textDecoration = 'underline';
+                        }
+                        if (part.blockquote) {
+                            ctx.fillStyle = '#ec4899';
+                        }
+                        if (part.hr) {
+                            ctx.fillStyle = '#cccccc';
+                        }
+                    }
+                    
+                    ctx.fillText(part.text, currentX, currentY);
+                    
+                    // Handle strikethrough
+                    if (part.strikethrough) {
+                        const width = ctx.measureText(part.text).width;
+                        ctx.strokeStyle = '#ef4444';
+                        ctx.lineWidth = 3;
+                        ctx.beginPath();
+                        ctx.moveTo(currentX, currentY - FONT_SIZE * 0.1);
+                        ctx.lineTo(currentX + width, currentY - FONT_SIZE * 0.1);
+                        ctx.stroke();
+                    }
+                    
+                    // Reset text decoration
+                    if (part.link) {
+                        ctx.textDecoration = 'none';
+                    }
+                    
+                    currentX += ctx.measureText(part.text).width;
+                    ctx.restore();
+                });
+            };
+
+            const measureMarkdownText = (ctx, text) => {
+                const parts = parseMarkdown(text);
+                let maxWidth = 0;
+                let totalHeight = 0;
+                let currentLineWidth = 0;
+                let currentLineHeight = FONT_SIZE * 1.4;
+                const lineHeight = FONT_SIZE * 1.4;
+                
+                parts.forEach(part => {
+                    if (part.text === '\n') {
+                        maxWidth = Math.max(maxWidth, currentLineWidth);
+                        currentLineWidth = 0;
+                        totalHeight += currentLineHeight;
+                        currentLineHeight = lineHeight;
+                        return;
+                    }
+                    
+                    // Handle images
+                    if (part.image) {
+                        maxWidth = Math.max(maxWidth, currentLineWidth, 150); // Image width
+                        currentLineWidth = 0; // Reset for next content
+                        currentLineHeight = Math.max(currentLineHeight, 110); // Image height + padding
+                        return;
+                    }
+                    
+                    ctx.save();
+                    
+                    // Handle headings
+                    if (part.heading) {
+                        const headingSizes = [24, 20, 18, 16, 14, 12];
+                        const headingSize = headingSizes[part.heading - 1] || 12;
+                        ctx.font = `700 ${headingSize}px sans-serif`;
+                    }
+
+                    // Handle regular formatting
+                    else {
+                        let fontWeight = '500';
+                        let fontStyle = '';
+                        
+                        if (part.bold && part.italic) {
+                            fontWeight = '700';
+                            fontStyle = 'italic ';
+                        } else if (part.bold) {
+                            fontWeight = '700';
+                        } else if (part.italic) {
+                            fontStyle = 'italic ';
+                        }
+                        
+                        if (part.code) {
+                            ctx.font = `500 ${FONT_SIZE}px monospace`;
+                        } else {
+                            ctx.font = `${fontStyle}${fontWeight} ${FONT_SIZE}px sans-serif`;
+                        }
+                    }
+                    
+                    currentLineWidth += ctx.measureText(part.text).width;
+                    ctx.restore();
+                });
+                
+                maxWidth = Math.max(maxWidth, currentLineWidth, 80);
+                totalHeight = totalHeight + currentLineHeight;
+                
+                return { width: maxWidth, height: totalHeight };
+            };
+
+            const parseMarkdown = (text) => {
+                // First handle multi-line code blocks (but not in blockquotes)
+                let processedText = text;
+                const codeBlockRegex = /```([\s\S]*?)```/g;
+                const codeBlocks = [];
+                let match;
+                
+                while ((match = codeBlockRegex.exec(text)) !== null) {
+                    // Check if this code block is inside a blockquote
+                    const beforeMatch = text.substring(0, match.index);
+                    const lines = beforeMatch.split('\n');
+                    const lastLine = lines[lines.length - 1];
+                    
+                    // If the line starts with '>', it's in a blockquote, skip it
+                    if (lastLine.trim().startsWith('>')) {
+                        continue;
+                    }
+                    
+                    const placeholder = `__CODEBLOCK_${codeBlocks.length}__`;
+                    codeBlocks.push(match[1]);
+                    processedText = processedText.replace(match[0], placeholder);
+                }
+                
+                const lines = processedText.split('\n');
+                const parts = [];
+                
+                for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+                    let line = lines[lineIndex];
+                    
+                    // Check for code block placeholders
+                    const codeBlockMatch = line.match(/__CODEBLOCK_(\d+)__/);
+                    if (codeBlockMatch) {
+                        const blockIndex = parseInt(codeBlockMatch[1]);
+                        const codeContent = codeBlocks[blockIndex];
+                        const codeLines = codeContent.split('\n');
+                        
+                        for (let i = 0; i < codeLines.length; i++) {
+                            parts.push({ text: codeLines[i], bold: false, italic: false, code: true, strikethrough: false, blockquote: false });
+                            if (i < codeLines.length - 1) {
+                                parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                            }
+                        }
+                        
+                        if (lineIndex < lines.length - 1) parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                        continue;
+                    }
+                    
+                    // Handle headings
+                    const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
+                    if (headingMatch) {
+                        const level = headingMatch[1].length;
+                        const headingText = headingMatch[2];
+                        parts.push({ text: headingText, bold: false, italic: false, code: false, strikethrough: false, blockquote: false, heading: level });
+                        if (lineIndex < lines.length - 1) parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                        continue;
+                    }
+                    
+                    // Handle horizontal rule
+                    if (line.trim() === '---') {
+                        parts.push({ text: '───────────────', bold: false, italic: false, code: false, strikethrough: false, blockquote: false, hr: true });
+                        if (lineIndex < lines.length - 1) parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                        continue;
+                    }
+                    
+                    // Handle blockquotes
+                    const blockquoteMatch = line.match(/^(>+)\s*(.*)$/);
+                    if (blockquoteMatch) {
+                        const level = blockquoteMatch[1].length;
+                        const quoteText = blockquoteMatch[2];
+                        const indent = '  '.repeat(level - 1);
+                        parts.push({ text: indent + '▎ ' + quoteText, bold: false, italic: false, code: false, strikethrough: false, blockquote: level });
+                        if (lineIndex < lines.length - 1) parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false });
+                        continue;
+                    }
+                    
+                    // Handle unordered lists
+                    const unorderedListMatch = line.match(/^(\s*)[-*+]\s+(.+)$/);
+                    if (unorderedListMatch) {
+                        const indent = unorderedListMatch[1];
+                        const listText = unorderedListMatch[2];
+                        parts.push({ text: indent + '• ' + listText, bold: false, italic: false, code: false, strikethrough: false, blockquote: false, list: true });
+                        if (lineIndex < lines.length - 1) parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                        continue;
+                    }
+                    
+                    // Handle ordered lists
+                    const orderedListMatch = line.match(/^(\s*)(\d+)\.\s+(.+)$/);
+                    if (orderedListMatch) {
+                        const indent = orderedListMatch[1];
+                        const number = orderedListMatch[2];
+                        const listText = orderedListMatch[3];
+                        parts.push({ text: indent + number + '. ' + listText, bold: false, italic: false, code: false, strikethrough: false, blockquote: false, list: true });
+                        if (lineIndex < lines.length - 1) parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                        continue;
+                    }
+                    
+
+                    
+                    // Parse inline markdown for regular lines
+                    const inlineParts = parseInlineMarkdown(line);
+                    parts.push(...inlineParts);
+                    
+                    if (lineIndex < lines.length - 1) {
+                        parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                    }
+                }
+                
+                return parts.length ? parts : [{ text: text, bold: false, italic: false, code: false, strikethrough: false, blockquote: false }];
+            };
+            
+            const parseInlineMarkdown = (text) => {
+                const parts = [];
+                let current = '';
+                let i = 0;
+                
+                while (i < text.length) {
+                    // Handle links [text](url)
+                    const linkMatch = text.substr(i).match(/^\[([^\]]+)\]\(([^)]+)\)/);
+                    if (linkMatch) {
+                        if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                        current = '';
+                        parts.push({ text: linkMatch[1], bold: false, italic: false, code: false, strikethrough: false, blockquote: false, link: linkMatch[2] });
+                        i += linkMatch[0].length;
+                        continue;
+                    }
+                    
+                    // Handle images ![alt](url)
+                    const imageMatch = text.substr(i).match(/^!\[([^\]]*)\]\(([^)]+)\)/);
+                    if (imageMatch) {
+                        if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                        current = '';
+                        parts.push({ text: '', bold: false, italic: false, code: false, strikethrough: false, blockquote: false, image: imageMatch[2], alt: imageMatch[1] });
+                        i += imageMatch[0].length;
+                        continue;
+                    }
+                    
+                    // Handle bold and italic ***text***
+                    if (text.substr(i, 3) === '***') {
+                        let foundClosing = false;
+                        let tempCurrent = '';
+                        let j = i + 3;
+                        
+                        // Look for closing ***
+                        while (j < text.length - 2 && text.substr(j, 3) !== '***') {
+                            tempCurrent += text[j];
+                            j++;
+                        }
+                        
+                        if (j < text.length - 2 && text.substr(j, 3) === '***' && tempCurrent) {
+                            // Found proper closing ***
+                            if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                            parts.push({ text: tempCurrent, bold: true, italic: true, code: false, strikethrough: false, blockquote: false });
+                            current = '';
+                            i = j + 3;
+                        } else {
+                            // No closing *** found, treat as regular text
+                            current += text[i];
+                            i++;
+                        }
+                    }
+                    // Handle bold **text**
+                    else if (text.substr(i, 2) === '**') {
+                        let foundClosing = false;
+                        let tempCurrent = '';
+                        let j = i + 2;
+                        
+                        // Look for closing **
+                        while (j < text.length - 1 && text.substr(j, 2) !== '**') {
+                            tempCurrent += text[j];
+                            j++;
+                        }
+                        
+                        if (j < text.length - 1 && text.substr(j, 2) === '**' && tempCurrent) {
+                            // Found proper closing **
+                            if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                            parts.push({ text: tempCurrent, bold: true, italic: false, code: false, strikethrough: false, blockquote: false });
+                            current = '';
+                            i = j + 2;
+                        } else {
+                            // No closing ** found, treat as regular text
+                            current += text[i];
+                            i++;
+                        }
+                    }
+                    // Handle italic *text* or _text_
+                    else if ((text[i] === '*' || text[i] === '_') && text[i-1] !== text[i] && text[i+1] !== text[i]) {
+                        const marker = text[i];
+                        let foundClosing = false;
+                        let tempCurrent = '';
+                        let j = i + 1;
+                        
+                        // Look for closing marker
+                        while (j < text.length && text[j] !== marker) {
+                            tempCurrent += text[j];
+                            j++;
+                        }
+                        
+                        if (j < text.length && text[j] === marker && tempCurrent) {
+                            // Found proper closing marker
+                            if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                            parts.push({ text: tempCurrent, bold: false, italic: true, code: false, strikethrough: false, blockquote: false });
+                            current = '';
+                            i = j + 1;
+                        } else {
+                            // No closing marker found, treat as regular text
+                            current += text[i];
+                            i++;
+                        }
+                    }
+                    // Handle triple backtick inline code ```text```
+                    else if (text.substr(i, 3) === '```') {
+                        let tempCurrent = '';
+                        let j = i + 3;
+                        
+                        // Look for closing ```
+                        while (j < text.length - 2 && text.substr(j, 3) !== '```') {
+                            tempCurrent += text[j];
+                            j++;
+                        }
+                        
+                        if (j < text.length - 2 && text.substr(j, 3) === '```' && tempCurrent) {
+                            // Found proper closing ```
+                            if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                            parts.push({ text: tempCurrent, bold: false, italic: false, code: true, strikethrough: false, blockquote: false });
+                            current = '';
+                            i = j + 3;
+                        } else {
+                            // No closing ``` found, treat as regular text
+                            current += text[i];
+                            i++;
+                        }
+                    }
+
+                    // Handle strikethrough ~~text~~
+                    else if (text.substr(i, 2) === '~~') {
+                        let foundClosing = false;
+                        let tempCurrent = '';
+                        let j = i + 2;
+                        
+                        // Look for closing ~~
+                        while (j < text.length - 1 && text.substr(j, 2) !== '~~') {
+                            tempCurrent += text[j];
+                            j++;
+                        }
+                        
+                        if (j < text.length - 1 && text.substr(j, 2) === '~~' && tempCurrent) {
+                            // Found proper closing ~~
+                            if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                            parts.push({ text: tempCurrent, bold: false, italic: false, code: false, strikethrough: true, blockquote: false });
+                            current = '';
+                            i = j + 2;
+                        } else {
+                            // No closing ~~ found, treat as regular text
+                            current += text[i];
+                            i++;
+                        }
+                    } else {
+                        current += text[i];
+                        i++;
+                    }
+                }
+                
+                if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                return parts.length ? parts : [{ text: text, bold: false, italic: false, code: false, strikethrough: false, blockquote: false }];
+            };
+
+            // --- Actions ---
+            const zoom = (factor, pivot = { x: canvas.clientWidth / 2, y: canvas.clientHeight / 2 }) => {
+                const newZoom = Math.max(0.1, Math.min(5, state.zoom * factor));
+                const worldPos = screenToWorld(pivot.x, pivot.y);
+                
+                state.pan.x = pivot.x - worldPos.x * newZoom;
+                state.pan.y = pivot.y - worldPos.y * newZoom;
+                state.zoom = newZoom;
+                
+                dom.zoomIndicator.textContent = `${Math.round(state.zoom * 100)}%`;
+                saveToLocalStorage();
+                requestRedraw();
+            };
+
+            const fitView = () => {
+                if (state.nodes.length === 0) return;
+
+                let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                state.nodes.forEach(n => {
+                    minX = Math.min(minX, n.x);
+                    minY = Math.min(minY, n.y);
+                    maxX = Math.max(maxX, n.x + n.width);
+                    maxY = Math.max(maxY, n.y + n.height);
+                });
+
+                const padding = 50;
+                const contentWidth = maxX - minX;
+                const contentHeight = maxY - minY;
+                
+                const scaleX = (canvas.clientWidth - padding * 2) / contentWidth;
+                const scaleY = (canvas.clientHeight - padding * 2) / contentHeight;
+                state.zoom = Math.min(scaleX, scaleY, 1);
+
+                const centerX = minX + contentWidth / 2;
+                const centerY = minY + contentHeight / 2;
+
+                state.pan.x = canvas.clientWidth / 2 - centerX * state.zoom;
+                state.pan.y = canvas.clientHeight / 2 - centerY * state.zoom;
+                
+                dom.zoomIndicator.textContent = `${Math.round(state.zoom * 100)}%`;
+                saveToLocalStorage();
+                requestRedraw();
+            };
+
+
+
+            // --- Helpers ---
+            const getMousePos = (e) => ({ x: e.clientX, y: e.clientY - dom.addNodeBtn.closest('header').offsetHeight });
+            const screenToWorld = (x, y) => ({ x: (x - state.pan.x) / state.zoom, y: (y - state.pan.y) / state.zoom });
+            const worldToScreen = (x, y) => ({ x: x * state.zoom + state.pan.x, y: y * state.zoom + state.pan.y });
+            const findNodeById = (id) => state.nodes.find(n => n.id === id);
+            const findNodeAt = (x, y) => {
+                const worldPos = screenToWorld(x, y);
+                return state.nodes.slice().reverse().find(n => 
+                    worldPos.x >= n.x && worldPos.x <= n.x + n.width &&
+                    worldPos.y >= n.y && worldPos.y <= n.y + n.height
+                )?.id || null;
+            };
+            const getCssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+            
+            const fillRoundedRect = (c, x, y, w, h, r) => {
+                c.beginPath(); c.moveTo(x+r, y); c.arcTo(x+w, y, x+w, y+h, r); c.arcTo(x+w, y+h, x, y+h, r); c.arcTo(x, y+h, x, y, r); c.arcTo(x, y, x+w, y, r); c.closePath(); c.fill();
+            };
+            const strokeRoundedRect = (c, x, y, w, h, r) => {
+                c.beginPath(); c.moveTo(x+r, y); c.arcTo(x+w, y, x+w, y+h, r); c.arcTo(x+w, y+h, x, y+h, r); c.arcTo(x, y+h, x, y, r); c.arcTo(x, y, x+w, y, r); c.closePath(); c.stroke();
+            };
+
+            // --- Initialization ---
+            const init = () => {
+                const savedTheme = localStorage.getItem('mindmap-theme');
+                if (savedTheme === 'light') {
+                    document.documentElement.classList.remove('dark');
+                }
+                toggleTheme(); // Set icons correctly
+                toggleTheme();
+
+                const savedMarkdown = localStorage.getItem('mindmap-markdown');
+                if (savedMarkdown === 'off') {
+                    state.markdownMode = false;
+                } else {
+                    state.markdownMode = true;
+                }
+                dom.markdownIconOff.classList.toggle('hidden', state.markdownMode);
+                dom.markdownIconOn.classList.toggle('hidden', !state.markdownMode);
+
+                setupEventListeners();
+                resizeCanvas();
+                
+                // Load saved data or create welcome map
+                const hasLoadedData = loadFromLocalStorage();
+                if (!hasLoadedData) {
+                    const cX = canvas.clientWidth / 2;
+                    const cY = canvas.clientHeight / 2;
+                    createNode(screenToWorld(cX, cY).x - 50, screenToWorld(cX, cY).y - 25, 'Welcome!');
+                }
+                
+                // Update UI to reflect loaded state
+                dom.zoomIndicator.textContent = `${Math.round(state.zoom * 100)}%`;
+                dom.markdownIconOff.classList.toggle('hidden', state.markdownMode);
+                dom.markdownIconOn.classList.toggle('hidden', !state.markdownMode);
+                
+                saveState();
+                if (!hasLoadedData) {
+                    fitView();
+                }
+                requestRedraw();
+            };
+
+            init();
+        });
     </script>
 </body>
 </html>
