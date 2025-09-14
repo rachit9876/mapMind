@@ -109,7 +109,7 @@
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 15l3-3m0 0l-3-3m3 3H8a5 5 0 0 0 0 10h3"></path></svg>
             </button>
             <div class="w-px h-6 bg-[var(--border)] mx-1"></div>
-            <button id="addNodeBtn" class="btn btn-primary" title="Add Node (N)">
+            <button id="addNodeBtn" class="btn btn-primary" title="Add Node">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
             </button>
         </div>
@@ -124,7 +124,7 @@
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                 </button>
             </div>
-            <button id="fitViewBtn" class="btn btn-secondary" title="Fit to View (F)">
+            <button id="fitViewBtn" class="btn btn-secondary" title="Fit to View">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4h4m12 4V4h-4M4 16v4h4m12-4v4h-4"></path></svg>
             </button>
             <button id="importBtn" class="btn btn-secondary" title="Import">
@@ -133,11 +133,17 @@
             <button id="exportBtn" class="btn btn-secondary" title="Export">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
             </button>
-            <button id="markdownToggle" class="btn btn-secondary" title="Toggle Markdown Mode (M)">
+            <button id="cloudSaveBtn" class="btn btn-secondary" title="Save to Cloud">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+            </button>
+            <button id="cloudLoadBtn" class="btn btn-secondary" title="Load from Cloud">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 11l3 3m0 0l3-3m-3 3V4"></path></svg>
+            </button>
+            <button id="markdownToggle" class="btn btn-secondary" title="Toggle Markdown Mode">
                 <svg id="markdown-icon-off" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                 <svg id="markdown-icon-on" class="w-5 h-5 hidden" fill="currentColor" viewBox="0 0 24 24"><path d="M22.269 19.385c-.13-.151-.297-.243-.485-.243h-3.039v-7.874l-2.255 2.885-.239.307-.238-.307-2.255-2.885v7.874h-3.04c-.187 0-.354.092-.485.243-.13.15-.202.35-.202.56 0 .21.072.41.202.56.131.151.298.243.485.243h3.04v1.125c0 .621.504 1.125 1.125 1.125s1.125-.504 1.125-1.125v-1.125h3.039c.187 0 .354-.092.485-.243.13-.15.202-.35.202-.56 0-.21-.072-.41-.202-.56zm-9.269-9.385h-3v7h-2l3 3 3-3h-2v-7h1z"/></svg>
             </button>
-            <button id="themeToggle" class="btn btn-secondary" title="Toggle Theme (T)">
+            <button id="themeToggle" class="btn btn-secondary" title="Toggle Theme">
                 <svg id="theme-icon-light" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0z"></path></svg>
                 <svg id="theme-icon-dark" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 0 1 8.646 3.646 9.003 9.003 0 0 0 12 21a9.003 9.003 0 0 0 8.354-5.646z"></path></svg>
             </button>
@@ -160,7 +166,23 @@
     </div>
     
     <input type="file" id="file-input" class="hidden" accept=".rxt">
+    
+    <!-- Cloud Save/Load Modal -->
+    <div id="cloudModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+        <div class="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 w-96 max-w-md mx-4">
+            <h3 id="modalTitle" class="text-lg font-semibold mb-4">Cloud Save</h3>
+            <div class="mb-4">
+                <label for="usernameInput" class="block text-sm font-medium mb-2">Username:</label>
+                <input type="text" id="usernameInput" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--bg)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" placeholder="Enter unique username">
+            </div>
+            <div class="flex gap-2 justify-end">
+                <button id="modalCancel" class="px-4 py-2 border border-[var(--border)] rounded-lg hover:bg-[var(--border)] transition-colors">Cancel</button>
+                <button id="modalConfirm" class="px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent-hover)] transition-colors">Confirm</button>
+            </div>
+        </div>
+    </div>
 
+    <script src="cloud.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const canvas = document.getElementById('mindMapCanvas');
@@ -195,6 +217,8 @@
                 fitViewBtn: document.getElementById('fitViewBtn'),
                 importBtn: document.getElementById('importBtn'),
                 exportBtn: document.getElementById('exportBtn'),
+                cloudSaveBtn: document.getElementById('cloudSaveBtn'),
+                cloudLoadBtn: document.getElementById('cloudLoadBtn'),
                 markdownToggle: document.getElementById('markdownToggle'),
                 markdownIconOff: document.getElementById('markdown-icon-off'),
                 markdownIconOn: document.getElementById('markdown-icon-on'),
@@ -521,10 +545,23 @@
                 dom.importBtn.addEventListener('click', () => dom.fileInput.click());
                 dom.exportBtn.addEventListener('click', exportAsRXT);
                 dom.fileInput.addEventListener('change', importRXT);
+                dom.cloudSaveBtn.addEventListener('click', showCloudSaveModal);
+                dom.cloudLoadBtn.addEventListener('click', showCloudLoadModal);
 
                 window.addEventListener('resize', resizeCanvas);
                 window.addEventListener('keydown', onKeyDown);
                 document.addEventListener('click', () => hideContextMenu());
+                
+                // Cloud modal event listeners
+                document.getElementById('modalCancel').addEventListener('click', hideCloudModal);
+                document.getElementById('usernameInput').addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        document.getElementById('modalConfirm').click();
+                    }
+                    if (e.key === 'Escape') {
+                        hideCloudModal();
+                    }
+                });
             };
 
             const onMouseDown = (e) => {
@@ -649,10 +686,7 @@
                     state.connecting = false;
                     requestRedraw();
                 }
-                if (e.key === 'n') dom.addNodeBtn.click();
-                if (e.key === 'f') fitView();
-                if (e.key === 'm') toggleMarkdown();
-                if (e.key === 't') toggleTheme();
+
                 if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
                     e.preventDefault();
                     dom.fileInput.click();
@@ -767,6 +801,96 @@
                 };
                 reader.readAsText(file);
                 e.target.value = '';
+            };
+
+            const showCloudSaveModal = () => {
+                document.getElementById('modalTitle').textContent = 'Save to Cloud';
+                document.getElementById('usernameInput').placeholder = 'Enter unique username';
+                document.getElementById('cloudModal').classList.remove('hidden');
+                document.getElementById('usernameInput').focus();
+                
+                document.getElementById('modalConfirm').onclick = () => {
+                    const username = document.getElementById('usernameInput').value.trim();
+                    if (username) {
+                        saveToCloud(username);
+                        hideCloudModal();
+                    } else {
+                        alert('Please enter a username');
+                    }
+                };
+            };
+            
+            const showCloudLoadModal = () => {
+                document.getElementById('modalTitle').textContent = 'Load from Cloud';
+                document.getElementById('usernameInput').placeholder = 'Enter your username';
+                document.getElementById('cloudModal').classList.remove('hidden');
+                document.getElementById('usernameInput').focus();
+                
+                document.getElementById('modalConfirm').onclick = () => {
+                    const username = document.getElementById('usernameInput').value.trim();
+                    if (username) {
+                        loadFromCloud(username);
+                        hideCloudModal();
+                    } else {
+                        alert('Please enter a username');
+                    }
+                };
+            };
+            
+            const hideCloudModal = () => {
+                document.getElementById('cloudModal').classList.add('hidden');
+                document.getElementById('usernameInput').value = '';
+            };
+            
+            const saveToCloud = (username) => {
+                const exportData = {
+                    timestamp: new Date().toISOString(),
+                    settings: {
+                        zoom: state.zoom,
+                        pan: state.pan,
+                        theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+                    },
+                    nodes: state.nodes,
+                    metadata: {
+                        nextNodeId: state.nextNodeId,
+                        selectedNodeId: state.selectedNodeId,
+                        version: '1.0'
+                    }
+                };
+                
+                const dataString = JSON.stringify(exportData);
+                saveTextToSheet(username, dataString);
+            };
+            
+            const loadFromCloud = (username) => {
+                loadTextFromSheet(username, (data) => {
+                    if (data) {
+                        try {
+                            const parsedData = JSON.parse(data);
+                            state.nodes = parsedData.nodes || [];
+                            state.nextNodeId = parsedData.metadata?.nextNodeId || 1;
+                            if (parsedData.settings) {
+                                state.zoom = parsedData.settings.zoom || 1;
+                                state.pan = parsedData.settings.pan || { x: 0, y: 0 };
+                                if (parsedData.settings.theme) {
+                                    const isDark = parsedData.settings.theme === 'dark';
+                                    document.documentElement.classList.toggle('dark', isDark);
+                                    dom.themeIconLight.classList.toggle('hidden', isDark);
+                                    dom.themeIconDark.classList.toggle('hidden', !isDark);
+                                }
+                            }
+                            state.selectedNodeId = null;
+                            dom.zoomIndicator.textContent = `${Math.round(state.zoom * 100)}%`;
+                            saveState();
+                            requestRedraw();
+                            alert('Data loaded successfully from cloud!');
+                        } catch (error) {
+                            alert('Failed to load data: Invalid format');
+                        }
+                    } else {
+                        alert('No data found for this username');
+                    }
+                });
             };
 
             const exportAsRXT = () => {
