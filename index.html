@@ -1154,8 +1154,7 @@
                     
                     // Handle images
                     if (part.image) {
-                        maxWidth = Math.max(maxWidth, currentLineWidth, 150); // Image width
-                        currentLineWidth = 0; // Reset for next content
+                        currentLineWidth += 155; // 150 + 5 spacing
                         currentLineHeight = Math.max(currentLineHeight, 110); // Image height + padding
                         return;
                     }
