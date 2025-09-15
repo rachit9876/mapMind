@@ -115,6 +115,11 @@
             <button id="clearBtn" class="btn btn-secondary" title="Clear All">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
             </button>
+            <div class="w-px h-6 bg-[var(--border)] mx-1"></div>
+            <button id="lockBtn" class="btn btn-secondary" title="Lock Nodes">
+                <svg id="lock-icon-unlocked" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 1 1 8 0m-4 8v2m-6 4h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2z"></path></svg>
+                <svg id="lock-icon-locked" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2zm4-12a4 4 0 1 0-8 0v4h8V7z"></path></svg>
+            </button>
         </div>
 
         <div class="flex items-center gap-2">
@@ -208,6 +213,7 @@
                 historyIndex: -1,
                 connecting: false,
                 markdownMode: true,
+                nodesLocked: false,
             };
 
             const dom = {
@@ -228,6 +234,9 @@
                 themeToggle: document.getElementById('themeToggle'),
                 themeIconLight: document.getElementById('theme-icon-light'),
                 themeIconDark: document.getElementById('theme-icon-dark'),
+                lockBtn: document.getElementById('lockBtn'),
+                lockIconUnlocked: document.getElementById('lock-icon-unlocked'),
+                lockIconLocked: document.getElementById('lock-icon-locked'),
                 fileInput: document.getElementById('file-input'),
             };
 
@@ -560,6 +569,7 @@
                 dom.fileInput.addEventListener('change', importRXT);
                 dom.cloudSaveBtn.addEventListener('click', showCloudSaveModal);
                 dom.cloudLoadBtn.addEventListener('click', showCloudLoadModal);
+                dom.lockBtn.addEventListener('click', toggleLock);
 
                 window.addEventListener('resize', resizeCanvas);
                 window.addEventListener('keydown', onKeyDown);
@@ -615,7 +625,7 @@
 
                 state.selectedNodeId = clickedNodeId;
 
-                if (clickedNodeId) {
+                if (clickedNodeId && !state.nodesLocked) {
                     state.isDragging = true;
                     state.draggingNodeId = clickedNodeId;
                 } else {
@@ -955,6 +965,14 @@
                 localStorage.setItem('mindmap-markdown', state.markdownMode ? 'on' : 'off');
                 saveToLocalStorage();
                 requestRedraw();
+            };
+
+            const toggleLock = () => {
+                state.nodesLocked = !state.nodesLocked;
+                dom.lockIconUnlocked.classList.toggle('hidden', state.nodesLocked);
+                dom.lockIconLocked.classList.toggle('hidden', !state.nodesLocked);
+                dom.lockBtn.title = state.nodesLocked ? 'Unlock Nodes' : 'Lock Nodes';
+                localStorage.setItem('mindmap-locked', state.nodesLocked ? 'on' : 'off');
             };
 
             const imageCache = new Map();
@@ -1450,7 +1468,7 @@
 
             // --- Actions ---
             const zoom = (factor, pivot = { x: canvas.clientWidth / 2, y: canvas.clientHeight / 2 }) => {
-                const newZoom = Math.max(0.1, Math.min(5, state.zoom * factor));
+                const newZoom = Math.max(0.1, Math.min(15, state.zoom * factor));
                 const worldPos = screenToWorld(pivot.x, pivot.y);
                 
                 state.pan.x = pivot.x - worldPos.x * newZoom;
@@ -1532,6 +1550,16 @@
                 }
                 dom.markdownIconOff.classList.toggle('hidden', state.markdownMode);
                 dom.markdownIconOn.classList.toggle('hidden', !state.markdownMode);
+
+                const savedLocked = localStorage.getItem('mindmap-locked');
+                if (savedLocked === 'on') {
+                    state.nodesLocked = true;
+                } else {
+                    state.nodesLocked = false;
+                }
+                dom.lockIconUnlocked.classList.toggle('hidden', state.nodesLocked);
+                dom.lockIconLocked.classList.toggle('hidden', !state.nodesLocked);
+                dom.lockBtn.title = state.nodesLocked ? 'Unlock Nodes' : 'Lock Nodes';
 
                 setupEventListeners();
                 resizeCanvas();
