@@ -1,4 +1,4 @@
-# Mind Map ([Try Now](https://mapmind.pages.dev/))
+# Map Mind ([Try Now](https://mapmind.pages.dev/))
 
 A modern, interactive mind mapping application built with HTML5 Canvas and JavaScript. Create, edit, and organize your ideas with a clean, intuitive interface.
 
