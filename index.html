@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mind Map - Markdown Edition</title>
+    <title>Map Mind</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
             --bg: #f5f6fa;
@@ -21,10 +20,6 @@
             --node-shadow: 0 4px 16px rgba(0,0,0,0.08);
             --line: #d1d5db;
             --dot: #e0e0e0;
-            --success: #22c55e;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --info: #3b82f6;
         }
         html.dark {
             --bg: #292929;
@@ -40,20 +35,14 @@
             --node-shadow: 0 4px 16px rgba(0,0,0,0.18);
             --line: #444;
             --dot: #444;
-            --success: #4ade80;
-            --warning: #fbbf24;
-            --danger: #f87171;
-            --info: #60a5fa;
         }
         body {
             background-color: var(--bg);
             color: var(--text-primary);
             overflow: hidden;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
         }
         .dot-background {
-            background-image: radial-gradient(circle, var(--dot) 1px, transparent 1px);
-            background-size: 20px 20px;
+            background-image: none;
         }
         .btn {
             display: inline-flex;
@@ -63,10 +52,7 @@
             height: 2.2rem;
             border-radius: 0.7rem;
             box-shadow: 0 1px 4px rgba(0,0,0,0.04);
-            transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
-        }
-        .btn:active {
-            transform: scale(0.95);
+            transition: background 0.2s, box-shadow 0.2s;
         }
         .btn-secondary {
             background-color: var(--bg-secondary);
@@ -91,12 +77,12 @@
         #context-menu li {
             border-radius: 0.4rem;
             margin: 2px 0;
-            transition: background-color 0.2s;
         }
         #context-menu li:hover {
             background-color: var(--accent);
             color: #fff;
         }
+
         .rounded-lg {
             border-radius: 1rem !important;
         }
@@ -106,195 +92,267 @@
         .absolute.left-1\/2 {
             box-shadow: 0 2px 8px rgba(0,0,0,0.04);
         }
-        .tooltip {
-            position: relative;
-        }
-        .tooltip::after {
-            content: attr(data-tooltip);
-            position: absolute;
-            bottom: 125%;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            white-space: nowrap;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.2s;
-        }
-        .tooltip:hover::after {
-            opacity: 1;
-        }
-        .notification {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            padding: 12px 20px;
-            border-radius: 8px;
-            background-color: var(--bg-secondary);
-            border: 1px solid var(--border);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            z-index: 1000;
-            transform: translateY(100px);
-            opacity: 0;
-            transition: transform 0.3s, opacity 0.3s;
-        }
-        .notification.show {
-            transform: translateY(0);
-            opacity: 1;
-        }
-        .notification.success {
-            border-left: 4px solid var(--success);
-        }
-        .notification.error {
-            border-left: 4px solid var(--danger);
-        }
-        .notification.info {
-            border-left: 4px solid var(--info);
-        }
-        .markdown-toolbar {
-            display: flex;
-            gap: 4px;
-            padding: 4px;
-            background-color: var(--bg);
-            border-radius: 6px;
-            margin-bottom: 4px;
-        }
-        .markdown-toolbar button {
-            width: 28px;
-            height: 28px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 4px;
-            background-color: transparent;
-            color: var(--text-secondary);
-            border: none;
-            cursor: pointer;
-            transition: background-color 0.2s, color 0.2s;
-        }
-        .markdown-toolbar button:hover {
-            background-color: var(--border);
-            color: var(--text-primary);
-        }
-        .markdown-toolbar button.active {
-            background-color: var(--accent);
-            color: white;
-        }
-        .loading-spinner {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top-color: white;
-            animation: spin 1s ease-in-out infinite;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
     </style>
+
 </head>
 <body class="flex flex-col h-screen">
+
     <header class="bg-[var(--bg-secondary)]/80 backdrop-blur-xl border-b border-[var(--border)] p-2 flex justify-between items-center z-20">
         <div class="flex items-center gap-2">
-            <h1 class="text-2xl font-semibold tracking-tight" style="letter-spacing: -0.02em;">Mind Map</h1>
-            <span class="text-xs px-2 py-1 bg-[var(--accent)] text-white rounded-full">Markdown Edition</span>
+            <img src="mapMind.webp" alt="Map Mind Logo" class="w-8 h-8">
+            <h1 class="text-2xl font-semibold tracking-tight" style="letter-spacing: -0.02em;">Map Mind</h1>
         </div>
         <div class="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 p-2 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-md">
-            <button id="undoBtn" class="btn btn-secondary tooltip" data-tooltip="Undo (Ctrl+Z)" disabled>
-                <i class="fas fa-undo"></i>
+            <button id="undoBtn" class="btn btn-secondary" title="Undo (Ctrl+Z)" disabled>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 15l-3-3m0 0l3-3m-3 3h8a5 5 0 0 0 0-10H9"></path></svg>
             </button>
-            <button id="redoBtn" class="btn btn-secondary tooltip" data-tooltip="Redo (Ctrl+Y)" disabled>
-                <i class="fas fa-redo"></i>
+            <button id="redoBtn" class="btn btn-secondary" title="Redo (Ctrl+Y)" disabled>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 15l3-3m0 0l-3-3m3 3H8a5 5 0 0 0 0 10h3"></path></svg>
             </button>
             <div class="w-px h-6 bg-[var(--border)] mx-1"></div>
-            <button id="addNodeBtn" class="btn btn-primary tooltip" data-tooltip="Add Node (N)">
-                <i class="fas fa-plus"></i>
+            <button id="addNodeBtn" class="btn btn-primary" title="Add Node">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            </button>
+            <button id="clearBtn" class="btn btn-secondary" title="Clear All">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+            </button>
+            <div class="w-px h-6 bg-[var(--border)] mx-1"></div>
+            <button id="lockBtn" class="btn btn-secondary" title="Lock Nodes">
+                <svg id="lock-icon-unlocked" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 1 1 8 0m-4 8v2m-6 4h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2z"></path></svg>
+                <svg id="lock-icon-locked" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2zm4-12a4 4 0 1 0-8 0v4h8V7z"></path></svg>
             </button>
         </div>
+
         <div class="flex items-center gap-2">
             <div class="flex items-center gap-1 p-1 bg-[var(--bg)] border border-[var(--border)] rounded-lg">
-                <button id="zoomOutBtn" class="btn btn-secondary tooltip" data-tooltip="Zoom Out (-)">
-                    <i class="fas fa-minus"></i>
+                <button id="zoomOutBtn" class="btn btn-secondary" title="Zoom Out (-)">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg>
                 </button>
                 <div id="zoomIndicator" class="text-sm font-semibold w-16 text-center">100%</div>
-                <button id="zoomInBtn" class="btn btn-secondary tooltip" data-tooltip="Zoom In (+)">
-                    <i class="fas fa-plus"></i>
+                <button id="zoomInBtn" class="btn btn-secondary" title="Zoom In (+)">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                 </button>
             </div>
-            <button id="fitViewBtn" class="btn btn-secondary tooltip" data-tooltip="Fit to View (F)">
-                <i class="fas fa-expand"></i>
+            <button id="fitViewBtn" class="btn btn-secondary" title="Fit to View">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4h4m12 4V4h-4M4 16v4h4m12-4v4h-4"></path></svg>
             </button>
-            <button id="importBtn" class="btn btn-secondary tooltip" data-tooltip="Import">
-                <i class="fas fa-file-import"></i>
+            <button id="importBtn" class="btn btn-secondary" title="Import">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-1m-4-8l4 4m0 0l4-4m-4 4V4"></path></svg>
             </button>
-            <button id="exportBtn" class="btn btn-secondary tooltip" data-tooltip="Export">
-                <i class="fas fa-file-export"></i>
+            <button id="exportBtn" class="btn btn-secondary" title="Export">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
             </button>
-            <div class="w-px h-6 bg-[var(--border)] mx-1"></div>
-            <button id="markdownToggle" class="btn btn-secondary tooltip" data-tooltip="Toggle Markdown Mode (M)">
-                <i id="markdown-icon-off" class="fas fa-file-alt"></i>
-                <i id="markdown-icon-on" class="fas fa-file-code hidden"></i>
+            <button id="cloudSaveBtn" class="btn btn-secondary" title="Save to Cloud">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
             </button>
-            <button id="themeToggle" class="btn btn-secondary tooltip" data-tooltip="Toggle Theme (T)">
-                <i id="theme-icon-light" class="fas fa-sun"></i>
-                <i id="theme-icon-dark" class="fas fa-moon hidden"></i>
+            <button id="cloudLoadBtn" class="btn btn-secondary" title="Load from Cloud">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 11l3 3m0 0l3-3m-3 3V4"></path></svg>
+            </button>
+            <button id="markdownToggle" class="btn btn-secondary" title="Toggle Markdown Mode">
+                <svg id="markdown-icon-off" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                <svg id="markdown-icon-on" class="w-5 h-5 hidden" fill="currentColor" viewBox="0 0 24 24"><path d="M22.269 19.385c-.13-.151-.297-.243-.485-.243h-3.039v-7.874l-2.255 2.885-.239.307-.238-.307-2.255-2.885v7.874h-3.04c-.187 0-.354.092-.485.243-.13.15-.202.35-.202.56 0 .21.072.41.202.56.131.151.298.243.485.243h3.04v1.125c0 .621.504 1.125 1.125 1.125s1.125-.504 1.125-1.125v-1.125h3.039c.187 0 .354-.092.485-.243.13-.15.202-.35.202-.56 0-.21-.072-.41-.202-.56zm-9.269-9.385h-3v7h-2l3 3 3-3h-2v-7h1z"/></svg>
+            </button>
+            <button id="themeToggle" class="btn btn-secondary" title="Toggle Theme">
+                <svg id="theme-icon-light" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0z"></path></svg>
+                <svg id="theme-icon-dark" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 0 1 8.646 3.646 9.003 9.003 0 0 0 12 21a9.003 9.003 0 0 0 8.354-5.646z"></path></svg>
             </button>
         </div>
     </header>
+
     <main class="flex-1 dot-background relative">
     <canvas id="mindMapCanvas"></canvas>
-    <div id="node-editor-container" class="absolute hidden z-10">
-        <div class="markdown-toolbar">
-            <button id="md-bold" class="tooltip" data-tooltip="Bold"><i class="fas fa-bold"></i></button>
-            <button id="md-italic" class="tooltip" data-tooltip="Italic"><i class="fas fa-italic"></i></button>
-            <button id="md-heading" class="tooltip" data-tooltip="Heading"><i class="fas fa-heading"></i></button>
-            <button id="md-link" class="tooltip" data-tooltip="Link"><i class="fas fa-link"></i></button>
-            <button id="md-image" class="tooltip" data-tooltip="Image"><i class="fas fa-image"></i></button>
-            <button id="md-code" class="tooltip" data-tooltip="Code"><i class="fas fa-code"></i></button>
-            <button id="md-quote" class="tooltip" data-tooltip="Quote"><i class="fas fa-quote-left"></i></button>
-            <button id="md-list" class="tooltip" data-tooltip="List"><i class="fas fa-list-ul"></i></button>
-            <button id="md-table" class="tooltip" data-tooltip="Table"><i class="fas fa-table"></i></button>
-        </div>
-        <textarea id="node-editor" class="text-left outline-none bg-[var(--node-bg)] border border-[var(--node-border)] text-[var(--node-text)] rounded-lg p-2 resize-none overflow-hidden shadow-lg" rows="1" wrap="off"></textarea>
-    </div>
+    <textarea id="node-editor" class="absolute hidden text-left outline-none bg-[var(--node-bg)] border border-[var(--node-border)] text-[var(--node-text)] rounded-lg p-2 z-10 resize-none overflow-hidden shadow-lg" rows="1" wrap="off"></textarea>
     </main>
+
     <div id="context-menu" class="absolute hidden z-30 rounded-lg shadow-lg w-48">
         <ul class="py-1">
-            <li id="menu-add-child" class="px-4 py-2 cursor-pointer flex items-center gap-2">
-                <i class="fas fa-sitemap"></i> Add Child
-            </li>
-            <li id="menu-add-node" class="px-4 py-2 cursor-pointer flex items-center gap-2">
-                <i class="fas fa-plus-circle"></i> Add Node
-            </li>
-            <li id="menu-connect" class="px-4 py-2 cursor-pointer flex items-center gap-2">
-                <i class="fas fa-link"></i> Connect
-            </li>
-            <li id="menu-disconnect" class="px-4 py-2 cursor-pointer flex items-center gap-2">
-                <i class="fas fa-unlink"></i> Disconnect
-            </li>
-            <li id="menu-delete-node" class="px-4 py-2 cursor-pointer flex items-center gap-2">
-                <i class="fas fa-trash"></i> Delete Node
-            </li>
+            <li id="menu-add-child" class="px-4 py-2 cursor-pointer">Add Child</li>
+            <li id="menu-add-node" class="px-4 py-2 cursor-pointer">Add Node</li>
+            <li id="menu-connect" class="px-4 py-2 cursor-pointer">Connect</li>
+            <li id="menu-delete-node" class="px-4 py-2 cursor-pointer">Delete Node</li>
+            <li id="menu-disconnect" class="px-4 py-2 cursor-pointer">Disconnect</li>
         </ul>
     </div>
     
     <input type="file" id="file-input" class="hidden" accept=".rxt">
-    <div id="notification" class="notification"></div>
+    
+    <!-- Cloud Save/Load Modal -->
+    <div id="cloudModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+        <div class="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 w-96 max-w-md mx-4">
+            <h3 id="modalTitle" class="text-lg font-semibold mb-4">Cloud Save</h3>
+            <div class="mb-4">
+                <label for="usernameInput" class="block text-sm font-medium mb-2">Username:</label>
+                <input type="text" id="usernameInput" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--bg)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" placeholder="Enter unique username">
+            </div>
+            <div class="mb-4">
+                <label for="mindmapNameInput" class="block text-sm font-medium mb-2">Mind Map Name:</label>
+                <input type="text" id="mindmapNameInput" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--bg)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" placeholder="Enter mind map name">
+            </div>
+            <div id="savedMindmaps" class="mb-4 hidden">
+                <label class="block text-sm font-medium mb-2">Saved Mind Maps:</label>
+                <div id="mindmapsList" class="max-h-48 overflow-y-auto border border-[var(--border)] rounded-lg bg-[var(--bg)] p-2">
+                    <!-- Saved mind maps will be listed here -->
+                </div>
+            </div>
+            <div class="flex gap-2 justify-end">
+                <button id="modalCancel" class="px-4 py-2 border border-[var(--border)] rounded-lg hover:bg-[var(--border)] transition-colors">Cancel</button>
+                <button id="modalConfirm" class="px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent-hover)] transition-colors">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="notification" class="fixed bottom-4 right-4 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-lg p-4 transform translate-y-20 transition-transform duration-300 z-50 max-w-md">
+        <div class="flex items-start">
+            <div id="notificationIcon" class="mr-3 mt-0.5">
+                <!-- Icon will be inserted here -->
+            </div>
+            <div>
+                <h4 id="notificationTitle" class="font-semibold"></h4>
+                <p id="notificationMessage" class="text-sm text-[var(--text-secondary)]"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     
     <script>
+        // Initialize Firebase
+        const firebaseConfig = {
+            databaseURL: "https://database-8f81d-default-rtdb.firebaseio.com/"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // Firebase utility functions
+        const firebaseUtils = {
+            // Save mind map to Firebase
+            saveMindMap: async function(username, mindmapName, data) {
+                try {
+                    const timestamp = new Date().toISOString();
+                    const mindmapRef = database.ref(`mindmaps/${username}/${mindmapName}`);
+                    
+                    await mindmapRef.set({
+                        data: data,
+                        timestamp: timestamp,
+                        name: mindmapName
+                    });
+                    
+                    return { success: true, message: "Mind map saved successfully!" };
+                } catch (error) {
+                    console.error("Error saving mind map:", error);
+                    return { success: false, message: "Failed to save mind map: " + error.message };
+                }
+            },
+            
+            // Load mind map from Firebase
+            loadMindMap: async function(username, mindmapName) {
+                try {
+                    const mindmapRef = database.ref(`mindmaps/${username}/${mindmapName}`);
+                    const snapshot = await mindmapRef.once('value');
+                    
+                    if (snapshot.exists()) {
+                        const mindmapData = snapshot.val();
+                        return { 
+                            success: true, 
+                            data: mindmapData.data,
+                            message: "Mind map loaded successfully!" 
+                        };
+                    } else {
+                        return { 
+                            success: false, 
+                            message: "Mind map not found" 
+                        };
+                    }
+                } catch (error) {
+                    console.error("Error loading mind map:", error);
+                    return { success: false, message: "Failed to load mind map: " + error.message };
+                }
+            },
+            
+            // Get list of saved mind maps for a user
+            getMindMapsList: async function(username) {
+                try {
+                    const mindmapsRef = database.ref(`mindmaps/${username}`);
+                    const snapshot = await mindmapsRef.once('value');
+                    
+                    if (snapshot.exists()) {
+                        const mindmaps = snapshot.val();
+                        const mindmapsList = [];
+                        
+                        for (const key in mindmaps) {
+                            mindmapsList.push({
+                                name: key,
+                                timestamp: mindmaps[key].timestamp
+                            });
+                        }
+                        
+                        // Sort by timestamp (newest first)
+                        mindmapsList.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                        
+                        return { success: true, mindmaps: mindmapsList };
+                    } else {
+                        return { success: true, mindmaps: [] };
+                    }
+                } catch (error) {
+                    console.error("Error getting mind maps list:", error);
+                    return { success: false, message: "Failed to get mind maps list: " + error.message };
+                }
+            },
+            
+            // Delete a mind map
+            deleteMindMap: async function(username, mindmapName) {
+                try {
+                    const mindmapRef = database.ref(`mindmaps/${username}/${mindmapName}`);
+                    await mindmapRef.remove();
+                    
+                    return { success: true, message: "Mind map deleted successfully!" };
+                } catch (error) {
+                    console.error("Error deleting mind map:", error);
+                    return { success: false, message: "Failed to delete mind map: " + error.message };
+                }
+            }
+        };
+
+        // Notification system
+        function showNotification(title, message, type = 'success') {
+            const notification = document.getElementById('notification');
+            const notificationTitle = document.getElementById('notificationTitle');
+            const notificationMessage = document.getElementById('notificationMessage');
+            const notificationIcon = document.getElementById('notificationIcon');
+            
+            // Set content
+            notificationTitle.textContent = title;
+            notificationMessage.textContent = message;
+            
+            // Set icon based on type
+            if (type === 'success') {
+                notificationIcon.innerHTML = '<svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+            } else if (type === 'error') {
+                notificationIcon.innerHTML = '<svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+            } else if (type === 'info') {
+                notificationIcon.innerHTML = '<svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+            }
+            
+            // Show notification
+            notification.classList.remove('translate-y-20');
+            notification.classList.add('translate-y-0');
+            
+            // Hide after 3 seconds
+            setTimeout(() => {
+                notification.classList.remove('translate-y-0');
+                notification.classList.add('translate-y-20');
+            }, 3000);
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             const canvas = document.getElementById('mindMapCanvas');
             const ctx = canvas.getContext('2d');
             const nodeEditor = document.getElementById('node-editor');
-            const nodeEditorContainer = document.getElementById('node-editor-container');
             const contextMenu = document.getElementById('context-menu');
-            const notification = document.getElementById('notification');
-            
+
             let state = {
                 nodes: [],
                 pan: { x: 0, y: 0 },
@@ -310,11 +368,9 @@
                 historyIndex: -1,
                 connecting: false,
                 markdownMode: true,
-                autoSave: true,
-                autoSaveInterval: null,
-                lastSaved: null
+                nodesLocked: false,
             };
-            
+
             const dom = {
                 undoBtn: document.getElementById('undoBtn'),
                 redoBtn: document.getElementById('redoBtn'),
@@ -325,40 +381,23 @@
                 fitViewBtn: document.getElementById('fitViewBtn'),
                 importBtn: document.getElementById('importBtn'),
                 exportBtn: document.getElementById('exportBtn'),
+                cloudSaveBtn: document.getElementById('cloudSaveBtn'),
+                cloudLoadBtn: document.getElementById('cloudLoadBtn'),
                 markdownToggle: document.getElementById('markdownToggle'),
                 markdownIconOff: document.getElementById('markdown-icon-off'),
                 markdownIconOn: document.getElementById('markdown-icon-on'),
                 themeToggle: document.getElementById('themeToggle'),
                 themeIconLight: document.getElementById('theme-icon-light'),
                 themeIconDark: document.getElementById('theme-icon-dark'),
+                lockBtn: document.getElementById('lockBtn'),
+                lockIconUnlocked: document.getElementById('lock-icon-unlocked'),
+                lockIconLocked: document.getElementById('lock-icon-locked'),
                 fileInput: document.getElementById('file-input'),
-                // Markdown toolbar buttons
-                mdBold: document.getElementById('md-bold'),
-                mdItalic: document.getElementById('md-italic'),
-                mdHeading: document.getElementById('md-heading'),
-                mdLink: document.getElementById('md-link'),
-                mdImage: document.getElementById('md-image'),
-                mdCode: document.getElementById('md-code'),
-                mdQuote: document.getElementById('md-quote'),
-                mdList: document.getElementById('md-list'),
-                mdTable: document.getElementById('md-table')
             };
-            
+
             const FONT_SIZE = 16;
             const NODE_PADDING = 16;
-            const LINE_HEIGHT = 1.4;
-            
-            // --- Notification System ---
-            const showNotification = (message, type = 'info', duration = 3000) => {
-                notification.textContent = message;
-                notification.className = `notification ${type}`;
-                notification.classList.add('show');
-                
-                setTimeout(() => {
-                    notification.classList.remove('show');
-                }, duration);
-            };
-            
+
             // --- Core Functions ---
             const resizeCanvas = () => {
                 const header = document.querySelector('header');
@@ -369,51 +408,53 @@
                 ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
                 requestRedraw();
             };
-            
+
             const requestRedraw = () => {
                 requestAnimationFrame(draw);
             };
-            
+
             const draw = () => {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.save();
                 ctx.translate(state.pan.x, state.pan.y);
                 ctx.scale(state.zoom, state.zoom);
+
                 drawConnections();
                 drawNodes();
+
                 if (state.connecting && state.selectedNodeId) {
                     drawConnectionLineToCursor();
                 }
+
                 ctx.restore();
             };
-            
+
             const drawNodes = () => {
                 ctx.font = `500 ${FONT_SIZE}px sans-serif`;
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'middle';
-                
+
                 for (const node of state.nodes) {
                     updateNodeDimensions(node);
                     
-                    // Draw node background
                     ctx.fillStyle = getCssVar('--node-bg');
                     ctx.strokeStyle = getCssVar(node.id === state.selectedNodeId ? '--accent' : '--node-border');
                     ctx.lineWidth = 2;
                     ctx.shadowColor = getCssVar('--node-shadow');
                     ctx.shadowBlur = 10;
+
                     fillRoundedRect(ctx, node.x, node.y, node.width, node.height, 8);
                     strokeRoundedRect(ctx, node.x, node.y, node.width, node.height, 8);
                     
                     ctx.shadowColor = 'transparent';
                     
-                    // Draw node content
                     if (node.id !== state.editingNodeId) {
                         ctx.fillStyle = getCssVar('--node-text');
                         if (state.markdownMode) {
                             renderMarkdownText(ctx, node.text, node.x + NODE_PADDING, node.y + NODE_PADDING);
                         } else {
                             const lines = node.text.split('\n');
-                            const lineHeight = FONT_SIZE * LINE_HEIGHT;
+                            const lineHeight = FONT_SIZE * 1.4;
                             const startY = node.y + node.height / 2 - ((lines.length - 1) * lineHeight) / 2;
                             lines.forEach((line, index) => {
                                 ctx.fillText(line, node.x + NODE_PADDING, startY + index * lineHeight);
@@ -422,11 +463,10 @@
                     }
                 }
             };
-            
+
             const drawConnections = () => {
                 ctx.strokeStyle = getCssVar('--line');
                 ctx.lineWidth = 2.5;
-                
                 for (const node of state.nodes) {
                     if (node.parentId) {
                         const parent = findNodeById(node.parentId);
@@ -434,30 +474,22 @@
                             const start = { x: parent.x + parent.width / 2, y: parent.y + parent.height / 2 };
                             const end = { x: node.x + node.width / 2, y: node.y + node.height / 2 };
                             
-                            // Calculate control points for bezier curve
-                            const controlPoint1 = { x: start.x + 50, y: start.y };
-                            const controlPoint2 = { x: end.x - 50, y: end.y };
-                            
                             ctx.beginPath();
                             ctx.moveTo(start.x, start.y);
-                            ctx.bezierCurveTo(
-                                controlPoint1.x, controlPoint1.y,
-                                controlPoint2.x, controlPoint2.y,
-                                end.x, end.y
-                            );
+                            ctx.bezierCurveTo(start.x + 50, start.y, end.x - 50, end.y, end.x, end.y);
                             ctx.stroke();
                         }
                     }
                 }
             };
-            
+
             const drawConnectionLineToCursor = () => {
                 const startNode = findNodeById(state.selectedNodeId);
                 if (!startNode) return;
-                
+
                 const start = { x: startNode.x + startNode.width / 2, y: startNode.y + startNode.height / 2 };
                 const end = screenToWorld(state.dragStart.x, state.dragStart.y);
-                
+
                 ctx.strokeStyle = getCssVar('--accent');
                 ctx.lineWidth = 3;
                 ctx.setLineDash([5, 5]);
@@ -467,25 +499,17 @@
                 ctx.stroke();
                 ctx.setLineDash([]);
             };
-            
+
             // --- State & History ---
             const saveState = () => {
-                const snapshot = JSON.stringify({ 
-                    nodes: state.nodes, 
-                    nextNodeId: state.nextNodeId 
-                });
-                
+                const snapshot = JSON.stringify({ nodes: state.nodes, nextNodeId: state.nextNodeId });
                 state.historyIndex++;
                 state.history = state.history.slice(0, state.historyIndex);
                 state.history.push(snapshot);
-                
                 updateHistoryButtons();
                 saveToLocalStorage();
-                
-                // Update last saved timestamp
-                state.lastSaved = new Date();
             };
-            
+
             const saveToLocalStorage = () => {
                 const saveData = {
                     nodes: state.nodes,
@@ -494,15 +518,9 @@
                     pan: state.pan,
                     markdownMode: state.markdownMode
                 };
-                
-                try {
-                    localStorage.setItem('mindmap-data', JSON.stringify(saveData));
-                } catch (e) {
-                    console.error('Failed to save to localStorage:', e);
-                    showNotification('Failed to save data. Storage might be full.', 'error');
-                }
+                localStorage.setItem('mindmap-data', JSON.stringify(saveData));
             };
-            
+
             const loadFromLocalStorage = () => {
                 const saved = localStorage.getItem('mindmap-data');
                 if (saved) {
@@ -518,25 +536,22 @@
                         return true;
                     } catch (e) {
                         console.error('Failed to load saved data:', e);
-                        showNotification('Failed to load saved data.', 'error');
                     }
                 }
                 return false;
             };
-            
+
             const undo = () => {
                 if (state.historyIndex > 0) {
                     state.historyIndex--;
                     loadState(state.history[state.historyIndex]);
-                    showNotification('Undo successful', 'info');
                 }
             };
-            
+
             const redo = () => {
                 if (state.historyIndex < state.history.length - 1) {
                     state.historyIndex++;
                     loadState(state.history[state.historyIndex]);
-                    showNotification('Redo successful', 'info');
                 }
             };
             
@@ -550,35 +565,12 @@
                 updateHistoryButtons();
                 requestRedraw();
             };
-            
+
             const updateHistoryButtons = () => {
                 dom.undoBtn.disabled = state.historyIndex <= 0;
                 dom.redoBtn.disabled = state.historyIndex >= state.history.length - 1;
             };
-            
-            // --- Auto-save functionality ---
-            const setupAutoSave = () => {
-                if (state.autoSaveInterval) {
-                    clearInterval(state.autoSaveInterval);
-                }
-                
-                if (state.autoSave) {
-                    state.autoSaveInterval = setInterval(() => {
-                        if (state.editingNodeId) {
-                            // Don't auto-save while editing
-                            return;
-                        }
-                        
-                        saveToLocalStorage();
-                        const now = new Date();
-                        if (state.lastSaved && (now - state.lastSaved) > 60000) {
-                            showNotification('Auto-saved', 'success', 1000);
-                            state.lastSaved = now;
-                        }
-                    }, 5000); // Check every 5 seconds
-                }
-            };
-            
+
             // --- Node Management ---
             const createNode = (x, y, text = 'New Idea', parentId = null) => {
                 const newNode = {
@@ -588,26 +580,19 @@
                     width: 0, height: 0,
                     parentId,
                 };
-                
                 updateNodeDimensions(newNode);
                 state.nodes.push(newNode);
                 return newNode;
             };
-            
+
             const deleteNode = (nodeId) => {
-                // First, find all children and disconnect them
-                const children = state.nodes.filter(n => n.parentId === nodeId);
-                children.forEach(child => {
-                    child.parentId = null;
-                });
-                
-                // Then delete the node
+                const children = state.nodes.filter(n => n.parentId === nodeId).map(n => n.id);
+                children.forEach(deleteNode);
                 state.nodes = state.nodes.filter(n => n.id !== nodeId);
             };
-            
+
             const updateNodeDimensions = (node) => {
                 ctx.font = `500 ${FONT_SIZE}px sans-serif`;
-                
                 if (state.markdownMode) {
                     const dimensions = measureMarkdownText(ctx, node.text);
                     node.width = dimensions.width + NODE_PADDING * 2;
@@ -615,149 +600,60 @@
                 } else {
                     const lines = node.text.split('\n');
                     const maxWidth = Math.max(...lines.map(line => ctx.measureText(line).width), 80);
-                    const lineHeight = FONT_SIZE * LINE_HEIGHT;
+                    const lineHeight = FONT_SIZE * 1.4;
                     node.width = maxWidth + NODE_PADDING * 1.5;
                     node.height = lines.length * lineHeight + NODE_PADDING * 2;
                 }
             };
-            
+
             const updateEditorSize = () => {
                 if (!state.editingNodeId) return;
-                
                 const node = findNodeById(state.editingNodeId);
                 if (!node) return;
                 
                 const screenPos = worldToScreen(node.x, node.y);
-                nodeEditorContainer.style.left = `${screenPos.x}px`;
-                nodeEditorContainer.style.top = `${screenPos.y}px`;
+                nodeEditor.style.left = `${screenPos.x}px`;
+                nodeEditor.style.top = `${screenPos.y}px`;
                 nodeEditor.style.width = `${node.width * state.zoom}px`;
                 nodeEditor.style.height = `${node.height * state.zoom}px`;
             };
-            
-            const autoResizeEditor = () => {
-                nodeEditor.style.height = 'auto';
-                nodeEditor.style.height = `${nodeEditor.scrollHeight}px`;
-            };
-            
+
             const startEditingNode = (nodeId) => {
                 const node = findNodeById(nodeId);
                 if (!node) return;
-                
+
                 state.editingNodeId = nodeId;
                 const screenPos = worldToScreen(node.x, node.y);
                 
                 nodeEditor.value = node.text;
                 nodeEditor.style.fontSize = `${FONT_SIZE * state.zoom}px`;
                 nodeEditor.style.padding = `${NODE_PADDING * state.zoom}px`;
-                nodeEditor.style.lineHeight = `${FONT_SIZE * LINE_HEIGHT * state.zoom}px`;
-                
-                nodeEditorContainer.classList.remove('hidden');
+                nodeEditor.style.lineHeight = `${FONT_SIZE * 1.4 * state.zoom}px`;
+                nodeEditor.classList.remove('hidden');
                 updateEditorSize();
-                autoResizeEditor();
-                
                 nodeEditor.focus();
                 nodeEditor.select();
-                
                 requestRedraw();
             };
-            
+
             const finishEditingNode = () => {
                 if (!state.editingNodeId) return;
-                
                 const node = findNodeById(state.editingNodeId);
                 if (node) {
                     node.text = nodeEditor.value;
                     saveState();
                 }
-                
                 hideNodeEditor();
                 requestRedraw();
             };
             
             const hideNodeEditor = () => {
                 state.editingNodeId = null;
-                nodeEditorContainer.classList.add('hidden');
+                nodeEditor.classList.add('hidden');
             };
-            
-            // --- Markdown Toolbar Functions ---
-            const insertMarkdown = (before, after, defaultText = '') => {
-                const start = nodeEditor.selectionStart;
-                const end = nodeEditor.selectionEnd;
-                const selectedText = nodeEditor.value.substring(start, end) || defaultText;
-                const replacement = before + selectedText + after;
-                
-                nodeEditor.value = nodeEditor.value.substring(0, start) + replacement + nodeEditor.value.substring(end);
-                
-                // Set cursor position
-                const newCursorPos = start + before.length + selectedText.length;
-                nodeEditor.setSelectionRange(newCursorPos, newCursorPos);
-                
-                nodeEditor.focus();
-                autoResizeEditor();
-                
-                // Trigger input event to update node size in real-time
-                nodeEditor.dispatchEvent(new Event('input'));
-            };
-            
-            const insertMarkdownLink = () => {
-                const start = nodeEditor.selectionStart;
-                const end = nodeEditor.selectionEnd;
-                const selectedText = nodeEditor.value.substring(start, end) || 'link text';
-                const replacement = `[${selectedText}](url)`;
-                
-                nodeEditor.value = nodeEditor.value.substring(0, start) + replacement + nodeEditor.value.substring(end);
-                
-                // Set cursor position to select the URL
-                const newCursorStart = start + selectedText.length + 3;
-                const newCursorEnd = newCursorStart + 3;
-                nodeEditor.setSelectionRange(newCursorStart, newCursorEnd);
-                
-                nodeEditor.focus();
-                autoResizeEditor();
-                
-                // Trigger input event to update node size in real-time
-                nodeEditor.dispatchEvent(new Event('input'));
-            };
-            
-            const insertMarkdownImage = () => {
-                const start = nodeEditor.selectionStart;
-                const replacement = `![alt text](image-url)`;
-                
-                nodeEditor.value = nodeEditor.value.substring(0, start) + replacement + nodeEditor.value.substring(start);
-                
-                // Set cursor position to select the URL
-                const newCursorStart = start + 12;
-                const newCursorEnd = newCursorStart + 10;
-                nodeEditor.setSelectionRange(newCursorStart, newCursorEnd);
-                
-                nodeEditor.focus();
-                autoResizeEditor();
-                
-                // Trigger input event to update node size in real-time
-                nodeEditor.dispatchEvent(new Event('input'));
-            };
-            
-            const insertMarkdownTable = () => {
-                const table = `
-| Header 1 | Header 2 | Header 3 |
-|----------|----------|----------|
-| Cell 1   | Cell 2   | Cell 3   |
-| Cell 4   | Cell 5   | Cell 6   |
-`.trim();
-                
-                const start = nodeEditor.selectionStart;
-                nodeEditor.value = nodeEditor.value.substring(0, start) + table + nodeEditor.value.substring(start);
-                
-                nodeEditor.focus();
-                autoResizeEditor();
-                
-                // Trigger input event to update node size in real-time
-                nodeEditor.dispatchEvent(new Event('input'));
-            };
-            
+
             // --- Event Handlers ---
             const setupEventListeners = () => {
-                // Canvas events
                 canvas.addEventListener('mousedown', onMouseDown);
                 canvas.addEventListener('mousemove', onMouseMove);
                 canvas.addEventListener('mouseup', onMouseUp);
@@ -765,8 +661,7 @@
                 canvas.addEventListener('wheel', onWheel);
                 canvas.addEventListener('dblclick', onDoubleClick);
                 canvas.addEventListener('contextmenu', onContextMenu);
-                
-                // Node editor events
+
                 nodeEditor.addEventListener('blur', finishEditingNode);
                 nodeEditor.addEventListener('keydown', e => {
                     if (e.key === 'Enter') {
@@ -791,24 +686,11 @@
                             node.text = nodeEditor.value;
                             updateNodeDimensions(node);
                             updateEditorSize();
-                            autoResizeEditor();
                             requestRedraw();
                         }
                     }
                 });
-                
-                // Markdown toolbar events
-                dom.mdBold.addEventListener('click', () => insertMarkdown('**', '**', 'bold text'));
-                dom.mdItalic.addEventListener('click', () => insertMarkdown('*', '*', 'italic text'));
-                dom.mdHeading.addEventListener('click', () => insertMarkdown('## ', '', 'Heading'));
-                dom.mdLink.addEventListener('click', insertMarkdownLink);
-                dom.mdImage.addEventListener('click', insertMarkdownImage);
-                dom.mdCode.addEventListener('click', () => insertMarkdown('`', '`', 'code'));
-                dom.mdQuote.addEventListener('click', () => insertMarkdown('> ', '', 'Quote'));
-                dom.mdList.addEventListener('click', () => insertMarkdown('- ', '', 'List item'));
-                dom.mdTable.addEventListener('click', insertMarkdownTable);
-                
-                // UI button events
+
                 dom.addNodeBtn.addEventListener('click', () => {
                     const center = screenToWorld(canvas.clientWidth / 2, canvas.clientHeight / 2);
                     const newNode = createNode(center.x, center.y);
@@ -816,6 +698,16 @@
                     saveState();
                     requestRedraw();
                     startEditingNode(newNode.id);
+                });
+                
+                document.getElementById('clearBtn').addEventListener('click', () => {
+                    state.nodes = [];
+                    state.nextNodeId = 1;
+                    state.selectedNodeId = null;
+                    state.editingNodeId = null;
+                    hideNodeEditor();
+                    saveState();
+                    requestRedraw();
                 });
                 
                 dom.zoomInBtn.addEventListener('click', () => zoom(1.2));
@@ -828,27 +720,42 @@
                 dom.importBtn.addEventListener('click', () => dom.fileInput.click());
                 dom.exportBtn.addEventListener('click', exportAsRXT);
                 dom.fileInput.addEventListener('change', importRXT);
-                
-                // Window events
+                dom.cloudSaveBtn.addEventListener('click', showCloudSaveModal);
+                dom.cloudLoadBtn.addEventListener('click', showCloudLoadModal);
+                dom.lockBtn.addEventListener('click', toggleLock);
+
                 window.addEventListener('resize', resizeCanvas);
                 window.addEventListener('keydown', onKeyDown);
                 document.addEventListener('click', () => hideContextMenu());
                 
-                // Auto-save on page unload
-                window.addEventListener('beforeunload', () => {
-                    saveToLocalStorage();
+                // Cloud modal event listeners
+                document.getElementById('modalCancel').addEventListener('click', hideCloudModal);
+                document.getElementById('usernameInput').addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        document.getElementById('modalConfirm').click();
+                    }
+                    if (e.key === 'Escape') {
+                        hideCloudModal();
+                    }
+                });
+                document.getElementById('mindmapNameInput').addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        document.getElementById('modalConfirm').click();
+                    }
+                    if (e.key === 'Escape') {
+                        hideCloudModal();
+                    }
                 });
             };
-            
+
             const onMouseDown = (e) => {
                 if (e.button === 2) return; // Disable right-click drag
                 
                 hideContextMenu();
                 finishEditingNode();
-                
                 const pos = getMousePos(e);
                 const clickedNodeId = findNodeAt(pos.x, pos.y);
-                
+
                 if (state.connecting) {
                     if (clickedNodeId && clickedNodeId !== state.selectedNodeId) {
                         const child = findNodeById(clickedNodeId);
@@ -861,7 +768,7 @@
                     requestRedraw();
                     return;
                 }
-                
+
                 // Check for link click before setting up drag
                 if (clickedNodeId && state.markdownMode) {
                     const node = findNodeById(clickedNodeId);
@@ -876,10 +783,10 @@
                         }
                     }
                 }
-                
+
                 state.selectedNodeId = clickedNodeId;
-                
-                if (clickedNodeId) {
+
+                if (clickedNodeId && !state.nodesLocked) {
                     state.isDragging = true;
                     state.draggingNodeId = clickedNodeId;
                 } else {
@@ -889,12 +796,12 @@
                 state.dragStart = { x: pos.x, y: pos.y };
                 requestRedraw();
             };
-            
+
             const onMouseMove = (e) => {
                 const pos = getMousePos(e);
                 const dx = (pos.x - state.dragStart.x);
                 const dy = (pos.y - state.dragStart.y);
-                
+
                 // Check if hovering over a link
                 const clickedNodeId = findNodeAt(pos.x, pos.y);
                 if (clickedNodeId && state.markdownMode && !state.isDragging && !state.isPanning) {
@@ -909,13 +816,13 @@
                 } else {
                     canvas.style.cursor = 'default';
                 }
-                
+
                 if (state.connecting) {
                     state.dragStart = { x: pos.x, y: pos.y };
                     requestRedraw();
                     return;
                 }
-                
+
                 if (state.isDragging && state.draggingNodeId) {
                     const node = findNodeById(state.draggingNodeId);
                     if (node) {
@@ -928,26 +835,24 @@
                     state.pan.y += dy;
                     requestRedraw();
                 }
-                
                 state.dragStart = { x: pos.x, y: pos.y };
             };
-            
+
             const onMouseUp = () => {
                 if (state.isDragging) saveState();
                 if (state.isPanning) saveToLocalStorage();
-                
                 state.isDragging = false;
                 state.isPanning = false;
                 state.draggingNodeId = null;
             };
-            
+
             const onWheel = (e) => {
                 e.preventDefault();
                 const pos = getMousePos(e);
                 const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
                 zoom(zoomFactor, pos);
             };
-            
+
             const onDoubleClick = (e) => {
                 const pos = getMousePos(e);
                 const clickedNodeId = findNodeAt(pos.x, pos.y);
@@ -955,51 +860,31 @@
                     startEditingNode(clickedNodeId);
                 }
             };
-            
+
             const onKeyDown = (e) => {
                 if (state.editingNodeId) return;
-                
+
                 if (e.key === 'Escape' && state.connecting) {
                     state.connecting = false;
                     requestRedraw();
                 }
-                
-                if (e.key === 'n' && !e.ctrlKey && !e.metaKey) dom.addNodeBtn.click();
-                if (e.key === 'f' && !e.ctrlKey && !e.metaKey) fitView();
-                if (e.key === 'm' && !e.ctrlKey && !e.metaKey) toggleMarkdown();
-                if (e.key === 't' && !e.ctrlKey && !e.metaKey) toggleTheme();
-                
+
                 if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
                     e.preventDefault();
                     dom.fileInput.click();
                 }
-                
                 if (e.key === 'Delete' || e.key === 'Backspace') {
                     if (state.selectedNodeId) {
                         deleteNode(state.selectedNodeId);
                         state.selectedNodeId = null;
                         saveState();
                         requestRedraw();
-                        showNotification('Node deleted', 'info');
                     }
                 }
-                
-                if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
-                    e.preventDefault();
-                    undo();
-                }
-                if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
-                    e.preventDefault();
-                    redo();
-                }
-                
-                if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-                    e.preventDefault();
-                    exportAsRXT();
-                    showNotification('Mind map exported', 'success');
-                }
+                if ((e.ctrlKey || e.metaKey) && e.key === 'z') undo();
+                if ((e.ctrlKey || e.metaKey) && e.key === 'y') redo();
             };
-            
+
             const onContextMenu = (e) => {
                 e.preventDefault();
                 const pos = getMousePos(e);
@@ -1008,7 +893,7 @@
                 requestRedraw();
                 showContextMenu(e.clientX, e.clientY, nodeId);
             };
-            
+
             // --- UI & Menus ---
             const showContextMenu = (x, y, nodeId) => {
                 contextMenu.style.left = `${x}px`;
@@ -1020,7 +905,7 @@
                 const menuConnect = document.getElementById('menu-connect');
                 const menuDeleteNode = document.getElementById('menu-delete-node');
                 const menuDisconnect = document.getElementById('menu-disconnect');
-                
+
                 menuAddNode.style.display = 'block';
                 menuAddNode.onclick = () => {
                     const pos = screenToWorld(x, y);
@@ -1030,40 +915,33 @@
                     requestRedraw();
                     startEditingNode(newNode.id);
                 };
-                
+
                 if (nodeId) {
                     menuAddChild.style.display = 'block';
                     menuConnect.style.display = 'block';
                     menuDeleteNode.style.display = 'block';
-                    
                     const node = findNodeById(nodeId);
                     menuDisconnect.style.display = node.parentId ? 'block' : 'none';
-                    
+
                     menuAddChild.onclick = () => {
                         const parent = findNodeById(nodeId);
                         const child = createNode(parent.x + parent.width + 50, parent.y, 'New Child', nodeId);
                         saveState();
                         startEditingNode(child.id);
                     };
-                    
                     menuConnect.onclick = () => {
                         state.connecting = true;
-                        showNotification('Click on another node to connect', 'info');
                     };
-                    
                     menuDeleteNode.onclick = () => {
                         deleteNode(nodeId);
                         state.selectedNodeId = null;
                         saveState();
                         requestRedraw();
-                        showNotification('Node deleted', 'info');
                     };
-                    
                     menuDisconnect.onclick = () => {
                         node.parentId = null;
                         saveState();
                         requestRedraw();
-                        showNotification('Node disconnected', 'info');
                     };
                 } else {
                     menuAddChild.style.display = 'none';
@@ -1072,9 +950,9 @@
                     menuDisconnect.style.display = 'none';
                 }
             };
-            
+
             const hideContextMenu = () => contextMenu.classList.add('hidden');
-            
+
             const importRXT = (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
@@ -1085,11 +963,9 @@
                         const data = JSON.parse(event.target.result);
                         state.nodes = data.nodes || [];
                         state.nextNodeId = data.metadata?.nextNodeId || 1;
-                        
                         if (data.settings) {
                             state.zoom = data.settings.zoom || 1;
                             state.pan = data.settings.pan || { x: 0, y: 0 };
-                            
                             if (data.settings.theme) {
                                 const isDark = data.settings.theme === 'dark';
                                 document.documentElement.classList.toggle('dark', isDark);
@@ -1097,22 +973,192 @@
                                 dom.themeIconDark.classList.toggle('hidden', !isDark);
                             }
                         }
-                        
                         state.selectedNodeId = null;
                         dom.zoomIndicator.textContent = `${Math.round(state.zoom * 100)}%`;
                         saveState();
                         requestRedraw();
-                        showNotification('Mind map imported successfully', 'success');
                     } catch (error) {
-                        console.error('Import error:', error);
-                        showNotification('Invalid file format', 'error');
+                        alert('Invalid file format');
                     }
                 };
-                
                 reader.readAsText(file);
                 e.target.value = '';
             };
+
+            const showCloudSaveModal = () => {
+                document.getElementById('modalTitle').textContent = 'Save to Cloud';
+                document.getElementById('usernameInput').placeholder = 'Enter your username';
+                document.getElementById('mindmapNameInput').placeholder = 'Enter mind map name';
+                document.getElementById('savedMindmaps').classList.add('hidden');
+                document.getElementById('cloudModal').classList.remove('hidden');
+                document.getElementById('usernameInput').focus();
+                
+                document.getElementById('modalConfirm').onclick = () => {
+                    const username = document.getElementById('usernameInput').value.trim();
+                    const mindmapName = document.getElementById('mindmapNameInput').value.trim();
+                    
+                    if (username && mindmapName) {
+                        saveToCloud(username, mindmapName);
+                    } else {
+                        showNotification('Error', 'Please enter both username and mind map name', 'error');
+                    }
+                };
+            };
             
+            const showCloudLoadModal = () => {
+                document.getElementById('modalTitle').textContent = 'Load from Cloud';
+                document.getElementById('usernameInput').placeholder = 'Enter your username';
+                document.getElementById('mindmapNameInput').value = '';
+                document.getElementById('mindmapNameInput').style.display = 'none';
+                document.getElementById('savedMindmaps').classList.remove('hidden');
+                document.getElementById('cloudModal').classList.remove('hidden');
+                document.getElementById('usernameInput').focus();
+                
+                // Load mind maps list when username is entered
+                const usernameInput = document.getElementById('usernameInput');
+                usernameInput.oninput = async () => {
+                    const username = usernameInput.value.trim();
+                    if (username) {
+                        const result = await firebaseUtils.getMindMapsList(username);
+                        if (result.success) {
+                            displayMindMapsList(result.mindmaps);
+                        } else {
+                            showNotification('Error', result.message, 'error');
+                        }
+                    }
+                };
+                
+                document.getElementById('modalConfirm').onclick = async () => {
+                    const username = document.getElementById('usernameInput').value.trim();
+                    const mindmapName = document.querySelector('.mindmap-item.selected')?.dataset.name;
+                    
+                    if (username && mindmapName) {
+                        loadFromCloud(username, mindmapName);
+                    } else {
+                        showNotification('Error', 'Please select a mind map to load', 'error');
+                    }
+                };
+            };
+            
+            const displayMindMapsList = (mindmaps) => {
+                const mindmapsList = document.getElementById('mindmapsList');
+                mindmapsList.innerHTML = '';
+                
+                if (mindmaps.length === 0) {
+                    mindmapsList.innerHTML = '<p class="text-sm text-[var(--text-secondary)] p-2">No saved mind maps found</p>';
+                    return;
+                }
+                
+                mindmaps.forEach(mindmap => {
+                    const item = document.createElement('div');
+                    item.className = 'mindmap-item p-2 hover:bg-[var(--border)] rounded cursor-pointer flex justify-between items-center';
+                    item.dataset.name = mindmap.name;
+                    
+                    const nameDiv = document.createElement('div');
+                    nameDiv.textContent = mindmap.name;
+                    
+                    const dateDiv = document.createElement('div');
+                    dateDiv.className = 'text-xs text-[var(--text-secondary)]';
+                    dateDiv.textContent = new Date(mindmap.timestamp).toLocaleString();
+                    
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'ml-2 text-red-500 hover:text-red-700';
+                    deleteBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>';
+                    deleteBtn.onclick = async (e) => {
+                        e.stopPropagation();
+                        const username = document.getElementById('usernameInput').value.trim();
+                        if (username && confirm(`Are you sure you want to delete "${mindmap.name}"?`)) {
+                            const result = await firebaseUtils.deleteMindMap(username, mindmap.name);
+                            if (result.success) {
+                                showNotification('Success', result.message, 'success');
+                                // Refresh the list
+                                const refreshResult = await firebaseUtils.getMindMapsList(username);
+                                if (refreshResult.success) {
+                                    displayMindMapsList(refreshResult.mindmaps);
+                                }
+                            } else {
+                                showNotification('Error', result.message, 'error');
+                            }
+                        }
+                    };
+                    
+                    item.appendChild(nameDiv);
+                    item.appendChild(dateDiv);
+                    item.appendChild(deleteBtn);
+                    
+                    item.onclick = () => {
+                        document.querySelectorAll('.mindmap-item').forEach(el => el.classList.remove('selected', 'bg-[var(--accent)]', 'text-white'));
+                        item.classList.add('selected', 'bg-[var(--accent)]', 'text-white');
+                    };
+                    
+                    mindmapsList.appendChild(item);
+                });
+            };
+            
+            const hideCloudModal = () => {
+                document.getElementById('cloudModal').classList.add('hidden');
+                document.getElementById('usernameInput').value = '';
+                document.getElementById('mindmapNameInput').value = '';
+                document.getElementById('mindmapNameInput').style.display = 'block';
+                document.getElementById('savedMindmaps').classList.add('hidden');
+            };
+            
+            const saveToCloud = async (username, mindmapName) => {
+                const exportData = {
+                    timestamp: new Date().toISOString(),
+                    settings: {
+                        zoom: state.zoom,
+                        pan: state.pan,
+                        theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+                    },
+                    nodes: state.nodes,
+                    metadata: {
+                        nextNodeId: state.nextNodeId,
+                        selectedNodeId: state.selectedNodeId,
+                        version: '1.0'
+                    }
+                };
+                
+                const result = await firebaseUtils.saveMindMap(username, mindmapName, exportData);
+                if (result.success) {
+                    showNotification('Success', result.message, 'success');
+                    hideCloudModal();
+                } else {
+                    showNotification('Error', result.message, 'error');
+                }
+            };
+            
+            const loadFromCloud = async (username, mindmapName) => {
+                const result = await firebaseUtils.loadMindMap(username, mindmapName);
+                if (result.success) {
+                    try {
+                        const data = result.data;
+                        state.nodes = data.nodes || [];
+                        state.nextNodeId = data.metadata?.nextNodeId || 1;
+                        if (data.settings) {
+                            state.zoom = data.settings.zoom || 1;
+                            state.pan = data.settings.pan || { x: 0, y: 0 };
+                            if (data.settings.theme) {
+                                const isDark = data.settings.theme === 'dark';
+                                document.documentElement.classList.toggle('dark', isDark);
+                                dom.themeIconLight.classList.toggle('hidden', isDark);
+                                dom.themeIconDark.classList.toggle('hidden', !isDark);
+                            }
+                        }
+                        state.selectedNodeId = null;
+                        dom.zoomIndicator.textContent = `${Math.round(state.zoom * 100)}%`;
+                        saveState();
+                        requestRedraw();
+                        showNotification('Success', result.message, 'success');
+                        hideCloudModal();
+                    } catch (error) {
+                        showNotification('Error', 'Failed to load data: Invalid format', 'error');
+                    }
+                } else {
+                    showNotification('Error', result.message, 'error');
+                }
+            };
+
             const exportAsRXT = () => {
                 const now = new Date();
                 const timestamp = `${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -1145,7 +1191,7 @@
                 a.click();
                 URL.revokeObjectURL(url);
             };
-            
+
             const toggleTheme = () => {
                 document.documentElement.classList.toggle('dark');
                 const isDark = document.documentElement.classList.contains('dark');
@@ -1154,7 +1200,7 @@
                 localStorage.setItem('mindmap-theme', isDark ? 'dark' : 'light');
                 requestRedraw();
             };
-            
+
             const toggleMarkdown = () => {
                 state.markdownMode = !state.markdownMode;
                 dom.markdownIconOff.classList.toggle('hidden', state.markdownMode);
@@ -1162,11 +1208,16 @@
                 localStorage.setItem('mindmap-markdown', state.markdownMode ? 'on' : 'off');
                 saveToLocalStorage();
                 requestRedraw();
-                
-                showNotification(`Markdown mode ${state.markdownMode ? 'enabled' : 'disabled'}`, 'info');
             };
-            
-            // --- Image Handling ---
+
+            const toggleLock = () => {
+                state.nodesLocked = !state.nodesLocked;
+                dom.lockIconUnlocked.classList.toggle('hidden', state.nodesLocked);
+                dom.lockIconLocked.classList.toggle('hidden', !state.nodesLocked);
+                dom.lockBtn.title = state.nodesLocked ? 'Unlock Nodes' : 'Lock Nodes';
+                localStorage.setItem('mindmap-locked', state.nodesLocked ? 'on' : 'off');
+            };
+
             const imageCache = new Map();
             
             const loadImage = (url) => {
@@ -1177,24 +1228,19 @@
                 const img = new Image();
                 img.crossOrigin = 'anonymous';
                 img.onload = () => requestRedraw();
-                img.onerror = () => {
-                    console.error(`Failed to load image: ${url}`);
-                    imageCache.delete(url);
-                };
                 img.src = url;
                 imageCache.set(url, img);
                 return img;
             };
             
-            // --- Link Detection ---
             const findLinkAtPosition = (text, x, y) => {
                 const parts = parseMarkdown(text);
                 let currentX = 0;
                 let currentY = FONT_SIZE * 0.8;
-                const lineHeight = FONT_SIZE * LINE_HEIGHT;
+                const lineHeight = FONT_SIZE * 1.4;
                 let currentLineHeight = lineHeight;
                 
-                ctx.font = `500 ${FONT_SIZE}px sans-serif`;
+                ctx.font = `500 ${FONT_SIZE}px Inter`;
                 
                 for (const part of parts) {
                     if (part.text === '\n') {
@@ -1225,536 +1271,12 @@
                 
                 return null;
             };
-            
-            // --- Markdown Parsing and Rendering (Completely Rewritten) ---
-            
-            // Create a stateful parser for markdown
-            class MarkdownParser {
-                constructor(text) {
-                    this.text = text;
-                    this.pos = 0;
-                    this.len = text.length;
-                }
-                
-                // Get the current character
-                current() {
-                    return this.pos < this.len ? this.text[this.pos] : '';
-                }
-                
-                // Look ahead at the next character
-                lookahead(n = 1) {
-                    return this.pos + n - 1 < this.len ? this.text[this.pos + n - 1] : '';
-                }
-                
-                // Consume and return the current character
-                consume() {
-                    return this.pos < this.len ? this.text[this.pos++] : '';
-                }
-                
-                // Check if we're at the end
-                eof() {
-                    return this.pos >= this.len;
-                }
-                
-                // Check if the text at the current position matches the given string
-                match(str) {
-                    return this.text.substr(this.pos, str.length) === str;
-                }
-                
-                // Skip whitespace
-                skipWhitespace() {
-                    while (!this.eof() && /\s/.test(this.current())) {
-                        this.consume();
-                    }
-                }
-                
-                // Parse the entire text
-                parse() {
-                    const parts = [];
-                    
-                    while (!this.eof()) {
-                        // Check for code blocks first
-                        if (this.match('```')) {
-                            parts.push(...this.parseCodeBlock());
-                            continue;
-                        }
-                        
-                        // Check for headings
-                        if (this.current() === '#' && this.pos === 0 || (this.pos > 0 && this.text[this.pos - 1] === '\n')) {
-                            parts.push(...this.parseHeading());
-                            continue;
-                        }
-                        
-                        // Check for blockquotes
-                        if (this.current() === '>' && (this.pos === 0 || (this.pos > 0 && this.text[this.pos - 1] === '\n'))) {
-                            parts.push(...this.parseBlockquote());
-                            continue;
-                        }
-                        
-                        // Check for horizontal rules
-                        if (this.match('---') || this.match('***') || this.match('___')) {
-                            parts.push(...this.parseHorizontalRule());
-                            continue;
-                        }
-                        
-                        // Check for lists
-                        if (this.match('- ') || this.match('* ') || this.match('+ ') || /\d+\./.test(this.text.substr(this.pos, 10))) {
-                            parts.push(...this.parseList());
-                            continue;
-                        }
-                        
-                        // Check for tables
-                        if (this.current() === '|' && (this.pos === 0 || (this.pos > 0 && this.text[this.pos - 1] === '\n'))) {
-                            parts.push(...this.parseTable());
-                            continue;
-                        }
-                        
-                        // Otherwise, parse inline elements
-                        parts.push(...this.parseInline());
-                        
-                        // Handle newlines
-                        if (this.current() === '\n') {
-                            parts.push({ text: '\n' });
-                            this.consume();
-                        }
-                    }
-                    
-                    return parts;
-                }
-                
-                // Parse a code block
-                parseCodeBlock() {
-                    const parts = [];
-                    
-                    // Consume the opening ```
-                    this.consume();
-                    this.consume();
-                    this.consume();
-                    
-                    // Find the closing ```
-                    let codeContent = '';
-                    while (!this.eof() && !this.match('```')) {
-                        codeContent += this.consume();
-                    }
-                    
-                    // Consume the closing ```
-                    if (this.match('```')) {
-                        this.consume();
-                        this.consume();
-                        this.consume();
-                    }
-                    
-                    // Split the code content into lines
-                    const lines = codeContent.split('\n');
-                    lines.forEach((line, index) => {
-                        parts.push({
-                            text: line,
-                            code: true
-                        });
-                        
-                        if (index < lines.length - 1) {
-                            parts.push({ text: '\n' });
-                        }
-                    });
-                    
-                    return parts;
-                }
-                
-                // Parse a heading
-                parseHeading() {
-                    const parts = [];
-                    
-                    // Count the number of #
-                    let level = 0;
-                    while (this.current() === '#' && level < 6) {
-                        this.consume();
-                        level++;
-                    }
-                    
-                    // Skip whitespace after the #
-                    this.skipWhitespace();
-                    
-                    // Parse the heading content (which can contain inline markdown)
-                    const content = this.parseUntil('\n');
-                    const contentParts = this.parseInlineMarkdown(content);
-                    
-                    // Add the heading parts with the heading level
-                    contentParts.forEach(part => {
-                        parts.push({
-                            ...part,
-                            heading: level
-                        });
-                    });
-                    
-                    // Add the newline
-                    parts.push({ text: '\n' });
-                    
-                    return parts;
-                }
-                
-                // Parse a blockquote
-                parseBlockquote() {
-                    const parts = [];
-                    
-                    // Consume the >
-                    this.consume();
-                    
-                    // Skip whitespace after the >
-                    this.skipWhitespace();
-                    
-                    // Parse the blockquote content (which can contain inline markdown)
-                    const content = this.parseUntil('\n');
-                    const contentParts = this.parseInlineMarkdown(content);
-                    
-                    // Add the blockquote parts
-                    contentParts.forEach(part => {
-                        parts.push({
-                            ...part,
-                            blockquote: true
-                        });
-                    });
-                    
-                    // Add the newline
-                    parts.push({ text: '\n' });
-                    
-                    return parts;
-                }
-                
-                // Parse a horizontal rule
-                parseHorizontalRule() {
-                    const parts = [];
-                    
-                    // Consume the horizontal rule
-                    if (this.match('---')) {
-                        this.consume();
-                        this.consume();
-                        this.consume();
-                    } else if (this.match('***')) {
-                        this.consume();
-                        this.consume();
-                        this.consume();
-                    } else if (this.match('___')) {
-                        this.consume();
-                        this.consume();
-                        this.consume();
-                    }
-                    
-                    // Add the horizontal rule
-                    parts.push({
-                        text: '───────────────',
-                        hr: true
-                    });
-                    
-                    // Add the newline
-                    parts.push({ text: '\n' });
-                    
-                    return parts;
-                }
-                
-                // Parse a list
-                parseList() {
-                    const parts = [];
-                    
-                    // Check if it's an ordered list
-                    const ordered = /\d+\./.test(this.text.substr(this.pos, 10));
-                    
-                    // Check if it's a task list
-                    const task = this.match('- [ ] ') || this.match('- [x] ') || this.match('- [X] ');
-                    const checked = this.match('- [x] ') || this.match('- [X] ');
-                    
-                    // Consume the list marker
-                    if (ordered) {
-                        while (/\d/.test(this.current())) {
-                            this.consume();
-                        }
-                        this.consume(); // .
-                        this.consume(); // space
-                    } else if (task) {
-                        this.consume(); // -
-                        this.consume(); // space
-                        this.consume(); // [
-                        this.consume(); //  or x
-                        this.consume(); // ]
-                        this.consume(); // space
-                    } else {
-                        this.consume(); // - * or +
-                        this.consume(); // space
-                    }
-                    
-                    // Parse the list content (which can contain inline markdown)
-                    const content = this.parseUntil('\n');
-                    const contentParts = this.parseInlineMarkdown(content);
-                    
-                    // Add the list parts
-                    const prefix = ordered ? '1. ' : (task ? (checked ? '☑ ' : '☐ ') : '• ');
-                    parts.push({
-                        text: prefix,
-                        list: true,
-                        ordered,
-                        task,
-                        checked
-                    });
-                    
-                    contentParts.forEach(part => {
-                        parts.push({
-                            ...part,
-                            list: true,
-                            ordered,
-                            task,
-                            checked
-                        });
-                    });
-                    
-                    // Add the newline
-                    parts.push({ text: '\n' });
-                    
-                    return parts;
-                }
-                
-                // Parse a table
-                parseTable() {
-                    const parts = [];
-                    
-                    // Parse the table header
-                    let headerLine = '';
-                    while (!this.eof() && this.current() !== '\n') {
-                        headerLine += this.consume();
-                    }
-                    
-                    // Parse the separator line
-                    this.consume(); // \n
-                    let separatorLine = '';
-                    while (!this.eof() && this.current() !== '\n') {
-                        separatorLine += this.consume();
-                    }
-                    
-                    // Parse the table rows
-                    const rows = [];
-                    while (!this.eof() && this.current() === '\n') {
-                        this.consume(); // \n
-                        
-                        if (this.current() !== '|') {
-                            break;
-                        }
-                        
-                        let rowLine = '';
-                        while (!this.eof() && this.current() !== '\n') {
-                            rowLine += this.consume();
-                        }
-                        rows.push(rowLine);
-                    }
-                    
-                    // Add the table parts
-                    parts.push({
-                        text: headerLine,
-                        table: true
-                    });
-                    
-                    parts.push({ text: '\n' });
-                    
-                    parts.push({
-                        text: separatorLine,
-                        table: true
-                    });
-                    
-                    rows.forEach((row, index) => {
-                        parts.push({ text: '\n' });
-                        parts.push({
-                            text: row,
-                            table: true
-                        });
-                    });
-                    
-                    parts.push({ text: '\n' });
-                    
-                    return parts;
-                }
-                
-                // Parse inline markdown elements
-                parseInline() {
-                    const content = this.parseUntil('\n');
-                    return this.parseInlineMarkdown(content);
-                }
-                
-                // Parse until a specific character
-                parseUntil(char) {
-                    let content = '';
-                    while (!this.eof() && this.current() !== char) {
-                        content += this.consume();
-                    }
-                    return content;
-                }
-                
-                // Parse inline markdown elements in a string
-                parseInlineMarkdown(text) {
-                    const parts = [];
-                    let i = 0;
-                    
-                    while (i < text.length) {
-                        // Check for links [text](url)
-                        if (text.substr(i, 1) === '[') {
-                            const linkMatch = text.substr(i).match(/^\[([^\]]+)\]\(([^)]+)\)/);
-                            if (linkMatch) {
-                                parts.push({
-                                    text: linkMatch[1],
-                                    link: linkMatch[2]
-                                });
-                                i += linkMatch[0].length;
-                                continue;
-                            }
-                        }
-                        
-                        // Check for images ![alt](url)
-                        if (text.substr(i, 2) === '![') {
-                            const imageMatch = text.substr(i).match(/^!\[([^\]]*)\]\(([^)]+)\)/);
-                            if (imageMatch) {
-                                parts.push({
-                                    text: '',
-                                    image: imageMatch[2],
-                                    alt: imageMatch[1]
-                                });
-                                i += imageMatch[0].length;
-                                continue;
-                            }
-                        }
-                        
-                        // Check for bold and italic ***text***
-                        if (text.substr(i, 3) === '***') {
-                            const endPos = text.indexOf('***', i + 3);
-                            if (endPos !== -1) {
-                                const content = text.substring(i + 3, endPos);
-                                const contentParts = this.parseInlineMarkdown(content);
-                                
-                                contentParts.forEach(part => {
-                                    parts.push({
-                                        ...part,
-                                        bold: true,
-                                        italic: true
-                                    });
-                                });
-                                
-                                i = endPos + 3;
-                                continue;
-                            }
-                        }
-                        
-                        // Check for bold **text**
-                        if (text.substr(i, 2) === '**') {
-                            const endPos = text.indexOf('**', i + 2);
-                            if (endPos !== -1) {
-                                const content = text.substring(i + 2, endPos);
-                                const contentParts = this.parseInlineMarkdown(content);
-                                
-                                contentParts.forEach(part => {
-                                    parts.push({
-                                        ...part,
-                                        bold: true
-                                    });
-                                });
-                                
-                                i = endPos + 2;
-                                continue;
-                            }
-                        }
-                        
-                        // Check for italic *text* or _text_
-                        if ((text.substr(i, 1) === '*' || text.substr(i, 1) === '_') && 
-                            (i === 0 || text[i-1] !== text[i]) && 
-                            (i === text.length - 1 || text[i+1] !== text[i])) {
-                            
-                            const marker = text[i];
-                            const endPos = text.indexOf(marker, i + 1);
-                            if (endPos !== -1) {
-                                const content = text.substring(i + 1, endPos);
-                                const contentParts = this.parseInlineMarkdown(content);
-                                
-                                contentParts.forEach(part => {
-                                    parts.push({
-                                        ...part,
-                                        italic: true
-                                    });
-                                });
-                                
-                                i = endPos + 1;
-                                continue;
-                            }
-                        }
-                        
-                        // Check for strikethrough ~~text~~
-                        if (text.substr(i, 2) === '~~') {
-                            const endPos = text.indexOf('~~', i + 2);
-                            if (endPos !== -1) {
-                                const content = text.substring(i + 2, endPos);
-                                const contentParts = this.parseInlineMarkdown(content);
-                                
-                                contentParts.forEach(part => {
-                                    parts.push({
-                                        ...part,
-                                        strikethrough: true
-                                    });
-                                });
-                                
-                                i = endPos + 2;
-                                continue;
-                            }
-                        }
-                        
-                        // Check for inline code `text`
-                        if (text.substr(i, 1) === '`') {
-                            const endPos = text.indexOf('`', i + 1);
-                            if (endPos !== -1) {
-                                const content = text.substring(i + 1, endPos);
-                                parts.push({
-                                    text: content,
-                                    code: true
-                                });
-                                i = endPos + 1;
-                                continue;
-                            }
-                        }
-                        
-                        // Regular text
-                        parts.push({
-                            text: text[i]
-                        });
-                        i++;
-                    }
-                    
-                    return parts;
-                }
-            }
-            
-            // Parse markdown text into parts
-            const parseMarkdown = (text) => {
-                const parser = new MarkdownParser(text);
-                const parts = parser.parse();
-                
-                // Normalize the parts
-                return parts.map(part => ({
-                    text: part.text || '',
-                    bold: !!part.bold,
-                    italic: !!part.italic,
-                    code: !!part.code,
-                    strikethrough: !!part.strikethrough,
-                    blockquote: !!part.blockquote,
-                    link: part.link || null,
-                    image: part.image || null,
-                    alt: part.alt || '',
-                    heading: part.heading || null,
-                    list: !!part.list,
-                    ordered: !!part.ordered,
-                    task: !!part.task,
-                    checked: !!part.checked,
-                    hr: !!part.hr,
-                    table: !!part.table
-                }));
-            };
-            
+
             const renderMarkdownText = (ctx, text, x, y) => {
                 const parts = parseMarkdown(text);
                 let currentX = x;
                 let currentY = y + FONT_SIZE * 0.8;
-                const lineHeight = FONT_SIZE * LINE_HEIGHT;
+                const lineHeight = FONT_SIZE * 1.4;
                 let currentLineHeight = lineHeight;
                 
                 parts.forEach(part => {
@@ -1799,6 +1321,7 @@
                         ctx.font = `700 ${headingSize}px sans-serif`;
                         ctx.fillStyle = getCssVar('--node-text');
                     }
+
                     // Handle regular formatting
                     else {
                         let fontWeight = '500';
@@ -1817,20 +1340,18 @@
                         
                         if (part.code) {
                             ctx.font = `500 ${FONT_SIZE}px monospace`;
-                            ctx.fillStyle = getCssVar('--success');
+                            ctx.fillStyle = '#22c55e';
                         }
+
                         if (part.link) {
-                            ctx.fillStyle = getCssVar('--info');
+                            ctx.fillStyle = '#0066cc';
                             ctx.textDecoration = 'underline';
                         }
                         if (part.blockquote) {
-                            ctx.fillStyle = getCssVar('--warning');
+                            ctx.fillStyle = '#ec4899';
                         }
                         if (part.hr) {
-                            ctx.fillStyle = getCssVar('--border');
-                        }
-                        if (part.table) {
-                            ctx.fillStyle = getCssVar('--text-primary');
+                            ctx.fillStyle = '#cccccc';
                         }
                     }
                     
@@ -1839,7 +1360,7 @@
                     // Handle strikethrough
                     if (part.strikethrough) {
                         const width = ctx.measureText(part.text).width;
-                        ctx.strokeStyle = getCssVar('--danger');
+                        ctx.strokeStyle = '#ef4444';
                         ctx.lineWidth = 3;
                         ctx.beginPath();
                         ctx.moveTo(currentX, currentY - FONT_SIZE * 0.1);
@@ -1856,14 +1377,14 @@
                     ctx.restore();
                 });
             };
-            
+
             const measureMarkdownText = (ctx, text) => {
                 const parts = parseMarkdown(text);
                 let maxWidth = 0;
                 let totalHeight = 0;
                 let currentLineWidth = 0;
-                let currentLineHeight = FONT_SIZE * LINE_HEIGHT;
-                const lineHeight = FONT_SIZE * LINE_HEIGHT;
+                let currentLineHeight = FONT_SIZE * 1.4;
+                const lineHeight = FONT_SIZE * 1.4;
                 
                 parts.forEach(part => {
                     if (part.text === '\n') {
@@ -1876,8 +1397,7 @@
                     
                     // Handle images
                     if (part.image) {
-                        maxWidth = Math.max(maxWidth, currentLineWidth, 150); // Image width
-                        currentLineWidth = 0; // Reset for next content
+                        currentLineWidth += 155; // 150 + 5 spacing
                         currentLineHeight = Math.max(currentLineHeight, 110); // Image height + padding
                         return;
                     }
@@ -1890,6 +1410,7 @@
                         const headingSize = headingSizes[part.heading - 1] || 12;
                         ctx.font = `700 ${headingSize}px sans-serif`;
                     }
+
                     // Handle regular formatting
                     else {
                         let fontWeight = '500';
@@ -1920,10 +1441,276 @@
                 
                 return { width: maxWidth, height: totalHeight };
             };
+
+            const parseMarkdown = (text) => {
+                // First handle multi-line code blocks (but not in blockquotes)
+                let processedText = text;
+                const codeBlockRegex = /```([\s\S]*?)```/g;
+                const codeBlocks = [];
+                let match;
+                
+                while ((match = codeBlockRegex.exec(text)) !== null) {
+                    // Check if this code block is inside a blockquote
+                    const beforeMatch = text.substring(0, match.index);
+                    const lines = beforeMatch.split('\n');
+                    const lastLine = lines[lines.length - 1];
+                    
+                    // If the line starts with '>', it's in a blockquote, skip it
+                    if (lastLine.trim().startsWith('>')) {
+                        continue;
+                    }
+                    
+                    const placeholder = `__CODEBLOCK_${codeBlocks.length}__`;
+                    codeBlocks.push(match[1]);
+                    processedText = processedText.replace(match[0], placeholder);
+                }
+                
+                const lines = processedText.split('\n');
+                const parts = [];
+                
+                for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+                    let line = lines[lineIndex];
+                    
+                    // Check for code block placeholders
+                    const codeBlockMatch = line.match(/__CODEBLOCK_(\d+)__/);
+                    if (codeBlockMatch) {
+                        const blockIndex = parseInt(codeBlockMatch[1]);
+                        const codeContent = codeBlocks[blockIndex];
+                        const codeLines = codeContent.split('\n');
+                        
+                        for (let i = 0; i < codeLines.length; i++) {
+                            parts.push({ text: codeLines[i], bold: false, italic: false, code: true, strikethrough: false, blockquote: false });
+                            if (i < codeLines.length - 1) {
+                                parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                            }
+                        }
+                        
+                        if (lineIndex < lines.length - 1) parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                        continue;
+                    }
+                    
+                    // Handle headings
+                    const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
+                    if (headingMatch) {
+                        const level = headingMatch[1].length;
+                        const headingText = headingMatch[2];
+                        parts.push({ text: headingText, bold: false, italic: false, code: false, strikethrough: false, blockquote: false, heading: level });
+                        if (lineIndex < lines.length - 1) parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                        continue;
+                    }
+                    
+                    // Handle horizontal rule
+                    if (line.trim() === '---') {
+                        parts.push({ text: '───────────────', bold: false, italic: false, code: false, strikethrough: false, blockquote: false, hr: true });
+                        if (lineIndex < lines.length - 1) parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                        continue;
+                    }
+                    
+                    // Handle blockquotes
+                    const blockquoteMatch = line.match(/^(>+)\s*(.*)$/);
+                    if (blockquoteMatch) {
+                        const level = blockquoteMatch[1].length;
+                        const quoteText = blockquoteMatch[2];
+                        const indent = '  '.repeat(level - 1);
+                        parts.push({ text: indent + '▎ ' + quoteText, bold: false, italic: false, code: false, strikethrough: false, blockquote: level });
+                        if (lineIndex < lines.length - 1) parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false });
+                        continue;
+                    }
+                    
+                    // Handle unordered lists
+                    const unorderedListMatch = line.match(/^(\s*)[-*+]\s+(.+)$/);
+                    if (unorderedListMatch) {
+                        const indent = unorderedListMatch[1];
+                        const listText = unorderedListMatch[2];
+                        parts.push({ text: indent + '• ' + listText, bold: false, italic: false, code: false, strikethrough: false, blockquote: false, list: true });
+                        if (lineIndex < lines.length - 1) parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                        continue;
+                    }
+                    
+                    // Handle ordered lists
+                    const orderedListMatch = line.match(/^(\s*)(\d+)\.\s+(.+)$/);
+                    if (orderedListMatch) {
+                        const indent = orderedListMatch[1];
+                        const number = orderedListMatch[2];
+                        const listText = orderedListMatch[3];
+                        parts.push({ text: indent + number + '. ' + listText, bold: false, italic: false, code: false, strikethrough: false, blockquote: false, list: true });
+                        if (lineIndex < lines.length - 1) parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                        continue;
+                    }
+                    
+
+                    
+                    // Parse inline markdown for regular lines
+                    const inlineParts = parseInlineMarkdown(line);
+                    parts.push(...inlineParts);
+                    
+                    if (lineIndex < lines.length - 1) {
+                        parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                    }
+                }
+                
+                return parts.length ? parts : [{ text: text, bold: false, italic: false, code: false, strikethrough: false, blockquote: false }];
+            };
             
+            const parseInlineMarkdown = (text) => {
+                const parts = [];
+                let current = '';
+                let i = 0;
+                
+                while (i < text.length) {
+                    // Handle links [text](url)
+                    const linkMatch = text.substr(i).match(/^\[([^\]]+)\]\(([^)]+)\)/);
+                    if (linkMatch) {
+                        if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                        current = '';
+                        parts.push({ text: linkMatch[1], bold: false, italic: false, code: false, strikethrough: false, blockquote: false, link: linkMatch[2] });
+                        i += linkMatch[0].length;
+                        continue;
+                    }
+                    
+                    // Handle images ![alt](url)
+                    const imageMatch = text.substr(i).match(/^!\[([^\]]*)\]\(([^)]+)\)/);
+                    if (imageMatch) {
+                        if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                        current = '';
+                        parts.push({ text: '', bold: false, italic: false, code: false, strikethrough: false, blockquote: false, image: imageMatch[2], alt: imageMatch[1] });
+                        i += imageMatch[0].length;
+                        continue;
+                    }
+                    
+                    // Handle bold and italic ***text***
+                    if (text.substr(i, 3) === '***') {
+                        let foundClosing = false;
+                        let tempCurrent = '';
+                        let j = i + 3;
+                        
+                        // Look for closing ***
+                        while (j < text.length - 2 && text.substr(j, 3) !== '***') {
+                            tempCurrent += text[j];
+                            j++;
+                        }
+                        
+                        if (j < text.length - 2 && text.substr(j, 3) === '***' && tempCurrent) {
+                            // Found proper closing ***
+                            if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                            parts.push({ text: tempCurrent, bold: true, italic: true, code: false, strikethrough: false, blockquote: false });
+                            current = '';
+                            i = j + 3;
+                        } else {
+                            // No closing *** found, treat as regular text
+                            current += text[i];
+                            i++;
+                        }
+                    }
+                    // Handle bold **text**
+                    else if (text.substr(i, 2) === '**') {
+                        let foundClosing = false;
+                        let tempCurrent = '';
+                        let j = i + 2;
+                        
+                        // Look for closing **
+                        while (j < text.length - 1 && text.substr(j, 2) !== '**') {
+                            tempCurrent += text[j];
+                            j++;
+                        }
+                        
+                        if (j < text.length - 1 && text.substr(j, 2) === '**' && tempCurrent) {
+                            // Found proper closing **
+                            if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                            parts.push({ text: tempCurrent, bold: true, italic: false, code: false, strikethrough: false, blockquote: false });
+                            current = '';
+                            i = j + 2;
+                        } else {
+                            // No closing ** found, treat as regular text
+                            current += text[i];
+                            i++;
+                        }
+                    }
+                    // Handle italic *text* or _text_
+                    else if ((text[i] === '*' || text[i] === '_') && text[i-1] !== text[i] && text[i+1] !== text[i]) {
+                        const marker = text[i];
+                        let foundClosing = false;
+                        let tempCurrent = '';
+                        let j = i + 1;
+                        
+                        // Look for closing marker
+                        while (j < text.length && text[j] !== marker) {
+                            tempCurrent += text[j];
+                            j++;
+                        }
+                        
+                        if (j < text.length && text[j] === marker && tempCurrent) {
+                            // Found proper closing marker
+                            if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                            parts.push({ text: tempCurrent, bold: false, italic: true, code: false, strikethrough: false, blockquote: false });
+                            current = '';
+                            i = j + 1;
+                        } else {
+                            // No closing marker found, treat as regular text
+                            current += text[i];
+                            i++;
+                        }
+                    }
+                    // Handle triple backtick inline code ```text```
+                    else if (text.substr(i, 3) === '```') {
+                        let tempCurrent = '';
+                        let j = i + 3;
+                        
+                        // Look for closing ```
+                        while (j < text.length - 2 && text.substr(j, 3) !== '```') {
+                            tempCurrent += text[j];
+                            j++;
+                        }
+                        
+                        if (j < text.length - 2 && text.substr(j, 3) === '```' && tempCurrent) {
+                            // Found proper closing ```
+                            if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                            parts.push({ text: tempCurrent, bold: false, italic: false, code: true, strikethrough: false, blockquote: false });
+                            current = '';
+                            i = j + 3;
+                        } else {
+                            // No closing ``` found, treat as regular text
+                            current += text[i];
+                            i++;
+                        }
+                    }
+
+                    // Handle strikethrough ~~text~~
+                    else if (text.substr(i, 2) === '~~') {
+                        let foundClosing = false;
+                        let tempCurrent = '';
+                        let j = i + 2;
+                        
+                        // Look for closing ~~
+                        while (j < text.length - 1 && text.substr(j, 2) !== '~~') {
+                            tempCurrent += text[j];
+                            j++;
+                        }
+                        
+                        if (j < text.length - 1 && text.substr(j, 2) === '~~' && tempCurrent) {
+                            // Found proper closing ~~
+                            if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                            parts.push({ text: tempCurrent, bold: false, italic: false, code: false, strikethrough: true, blockquote: false });
+                            current = '';
+                            i = j + 2;
+                        } else {
+                            // No closing ~~ found, treat as regular text
+                            current += text[i];
+                            i++;
+                        }
+                    } else {
+                        current += text[i];
+                        i++;
+                    }
+                }
+                
+                if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                return parts.length ? parts : [{ text: text, bold: false, italic: false, code: false, strikethrough: false, blockquote: false }];
+            };
+
             // --- Actions ---
             const zoom = (factor, pivot = { x: canvas.clientWidth / 2, y: canvas.clientHeight / 2 }) => {
-                const newZoom = Math.max(0.1, Math.min(5, state.zoom * factor));
+                const newZoom = Math.max(0.1, Math.min(15, state.zoom * factor));
                 const worldPos = screenToWorld(pivot.x, pivot.y);
                 
                 state.pan.x = pivot.x - worldPos.x * newZoom;
@@ -1934,19 +1721,18 @@
                 saveToLocalStorage();
                 requestRedraw();
             };
-            
+
             const fitView = () => {
                 if (state.nodes.length === 0) return;
-                
+
                 let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-                
                 state.nodes.forEach(n => {
                     minX = Math.min(minX, n.x);
                     minY = Math.min(minY, n.y);
                     maxX = Math.max(maxX, n.x + n.width);
                     maxY = Math.max(maxY, n.y + n.height);
                 });
-                
+
                 const padding = 50;
                 const contentWidth = maxX - minX;
                 const contentHeight = maxY - minY;
@@ -1954,9 +1740,10 @@
                 const scaleX = (canvas.clientWidth - padding * 2) / contentWidth;
                 const scaleY = (canvas.clientHeight - padding * 2) / contentHeight;
                 state.zoom = Math.min(scaleX, scaleY, 1);
-                
+
                 const centerX = minX + contentWidth / 2;
                 const centerY = minY + contentHeight / 2;
+
                 state.pan.x = canvas.clientWidth / 2 - centerX * state.zoom;
                 state.pan.y = canvas.clientHeight / 2 - centerY * state.zoom;
                 
@@ -1964,25 +1751,12 @@
                 saveToLocalStorage();
                 requestRedraw();
             };
-            
+
             // --- Helpers ---
-            const getMousePos = (e) => ({ 
-                x: e.clientX, 
-                y: e.clientY - dom.addNodeBtn.closest('header').offsetHeight 
-            });
-            
-            const screenToWorld = (x, y) => ({ 
-                x: (x - state.pan.x) / state.zoom, 
-                y: (y - state.pan.y) / state.zoom 
-            });
-            
-            const worldToScreen = (x, y) => ({ 
-                x: x * state.zoom + state.pan.x, 
-                y: y * state.zoom + state.pan.y 
-            });
-            
+            const getMousePos = (e) => ({ x: e.clientX, y: e.clientY - dom.addNodeBtn.closest('header').offsetHeight });
+            const screenToWorld = (x, y) => ({ x: (x - state.pan.x) / state.zoom, y: (y - state.pan.y) / state.zoom });
+            const worldToScreen = (x, y) => ({ x: x * state.zoom + state.pan.x, y: y * state.zoom + state.pan.y });
             const findNodeById = (id) => state.nodes.find(n => n.id === id);
-            
             const findNodeAt = (x, y) => {
                 const worldPos = screenToWorld(x, y);
                 return state.nodes.slice().reverse().find(n => 
@@ -1990,61 +1764,44 @@
                     worldPos.y >= n.y && worldPos.y <= n.y + n.height
                 )?.id || null;
             };
-            
             const getCssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
             
             const fillRoundedRect = (c, x, y, w, h, r) => {
-                c.beginPath(); 
-                c.moveTo(x+r, y); 
-                c.arcTo(x+w, y, x+w, y+h, r); 
-                c.arcTo(x+w, y+h, x, y+h, r); 
-                c.arcTo(x, y+h, x, y, r); 
-                c.arcTo(x, y, x+w, y, r); 
-                c.closePath(); 
-                c.fill();
+                c.beginPath(); c.moveTo(x+r, y); c.arcTo(x+w, y, x+w, y+h, r); c.arcTo(x+w, y+h, x, y+h, r); c.arcTo(x, y+h, x, y, r); c.arcTo(x, y, x+w, y, r); c.closePath(); c.fill();
             };
-            
             const strokeRoundedRect = (c, x, y, w, h, r) => {
-                c.beginPath(); 
-                c.moveTo(x+r, y); 
-                c.arcTo(x+w, y, x+w, y+h, r); 
-                c.arcTo(x+w, y+h, x, y+h, r); 
-                c.arcTo(x, y+h, x, y, r); 
-                c.arcTo(x, y, x+w, y, r); 
-                c.closePath(); 
-                c.stroke();
+                c.beginPath(); c.moveTo(x+r, y); c.arcTo(x+w, y, x+w, y+h, r); c.arcTo(x+w, y+h, x, y+h, r); c.arcTo(x, y+h, x, y, r); c.arcTo(x, y, x+w, y, r); c.closePath(); c.stroke();
             };
-            
+
             // --- Initialization ---
             const init = () => {
-                // Set up theme
                 const savedTheme = localStorage.getItem('mindmap-theme');
                 if (savedTheme === 'light') {
                     document.documentElement.classList.remove('dark');
-                } else {
-                    document.documentElement.classList.add('dark');
                 }
-                
-                // Update theme icons
-                const isDark = document.documentElement.classList.contains('dark');
-                dom.themeIconLight.classList.toggle('hidden', isDark);
-                dom.themeIconDark.classList.toggle('hidden', !isDark);
-                
-                // Set up markdown mode
+                toggleTheme(); // Set icons correctly
+                toggleTheme();
+
                 const savedMarkdown = localStorage.getItem('mindmap-markdown');
                 if (savedMarkdown === 'off') {
                     state.markdownMode = false;
                 } else {
                     state.markdownMode = true;
                 }
-                
                 dom.markdownIconOff.classList.toggle('hidden', state.markdownMode);
                 dom.markdownIconOn.classList.toggle('hidden', !state.markdownMode);
-                
-                // Set up event listeners
+
+                const savedLocked = localStorage.getItem('mindmap-locked');
+                if (savedLocked === 'on') {
+                    state.nodesLocked = true;
+                } else {
+                    state.nodesLocked = false;
+                }
+                dom.lockIconUnlocked.classList.toggle('hidden', state.nodesLocked);
+                dom.lockIconLocked.classList.toggle('hidden', !state.nodesLocked);
+                dom.lockBtn.title = state.nodesLocked ? 'Unlock Nodes' : 'Lock Nodes';
+
                 setupEventListeners();
-                
-                // Resize canvas
                 resizeCanvas();
                 
                 // Load saved data or create welcome map
@@ -2052,37 +1809,21 @@
                 if (!hasLoadedData) {
                     const cX = canvas.clientWidth / 2;
                     const cY = canvas.clientHeight / 2;
-                    createNode(
-                        screenToWorld(cX, cY).x - 50, 
-                        screenToWorld(cX, cY).y - 25, 
-                        '# Welcome to Mind Map!\n\nThis is a **markdown-enabled** mind map.\n\n## Features\n- *Rich text formatting*\n- ~~Strikethrough text~~\n- `Inline code`\n- [Links](https://example.com)\n- Images: ![Example](https://picsum.photos/seed/mindmap/150/100.jpg)\n- Tables\n- Lists\n- And much more!\n\n### _Complex Formatting_\n\nThis demonstrates **nested** *formatting* like **_bold and italic_** and ~~strikethrough with *italic*~~.\n\n> _Blockquote with italic text_'
-                    );
+                    createNode(screenToWorld(cX, cY).x - 50, screenToWorld(cX, cY).y - 25, 'Welcome!');
                 }
                 
                 // Update UI to reflect loaded state
                 dom.zoomIndicator.textContent = `${Math.round(state.zoom * 100)}%`;
+                dom.markdownIconOff.classList.toggle('hidden', state.markdownMode);
+                dom.markdownIconOn.classList.toggle('hidden', !state.markdownMode);
                 
-                // Set up auto-save
-                setupAutoSave();
-                
-                // Save initial state
                 saveState();
-                
-                // Fit to view if no data was loaded
                 if (!hasLoadedData) {
                     fitView();
                 }
-                
-                // Initial render
                 requestRedraw();
-                
-                // Show welcome notification if no data was loaded
-                if (!hasLoadedData) {
-                    showNotification('Welcome to Mind Map! Double-click a node to edit it.', 'info', 5000);
-                }
             };
-            
-            // Initialize the application
+
             init();
         });
     </script>
