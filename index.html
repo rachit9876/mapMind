@@ -182,7 +182,12 @@
             <h3 id="modalTitle" class="text-lg font-semibold mb-4">Cloud Save</h3>
             <div class="mb-4">
                 <label for="usernameInput" class="block text-sm font-medium mb-2">Username:</label>
-                <input type="text" id="usernameInput" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--bg)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" placeholder="Enter unique username">
+                <div class="flex items-center gap-2">
+                    <input type="text" id="usernameInput" class="flex-1 px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--bg)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" placeholder="Enter unique username">
+                    <button id="loadMindmapsBtn" class="btn btn-secondary hidden" title="Load Saved Mind Maps">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                    </button>
+                </div>
             </div>
             <div class="mb-4">
                 <label for="mindmapNameInput" class="block text-sm font-medium mb-2">Mind Map Name:</label>
@@ -1010,18 +1015,35 @@
                 document.getElementById('usernameInput').placeholder = 'Enter your username';
                 document.getElementById('mindmapNameInput').value = '';
                 document.getElementById('mindmapNameInput').style.display = 'none';
-                document.getElementById('savedMindmaps').classList.remove('hidden');
+                document.getElementById('savedMindmaps').classList.add('hidden');
                 document.getElementById('cloudModal').classList.remove('hidden');
                 document.getElementById('usernameInput').focus();
                 
-                // Load mind maps list when username is entered
+                // Clear previous mind maps list
+                document.getElementById('mindmapsList').innerHTML = '';
+                
+                // Show/hide eye button based on username input
                 const usernameInput = document.getElementById('usernameInput');
-                usernameInput.oninput = async () => {
+                const loadBtn = document.getElementById('loadMindmapsBtn');
+                
+                usernameInput.oninput = () => {
+                    const username = usernameInput.value.trim();
+                    if (username) {
+                        loadBtn.classList.remove('hidden');
+                    } else {
+                        loadBtn.classList.add('hidden');
+                        document.getElementById('savedMindmaps').classList.add('hidden');
+                    }
+                };
+                
+                // Load mind maps when eye button is clicked
+                loadBtn.onclick = async () => {
                     const username = usernameInput.value.trim();
                     if (username) {
                         const result = await firebaseUtils.getMindMapsList(username);
                         if (result.success) {
                             displayMindMapsList(result.mindmaps);
+                            document.getElementById('savedMindmaps').classList.remove('hidden');
                         } else {
                             showNotification('Error', result.message, 'error');
                         }
@@ -1101,6 +1123,7 @@
                 document.getElementById('mindmapNameInput').value = '';
                 document.getElementById('mindmapNameInput').style.display = 'block';
                 document.getElementById('savedMindmaps').classList.add('hidden');
+                document.getElementById('loadMindmapsBtn').classList.add('hidden');
             };
             
             const saveToCloud = async (username, mindmapName) => {
