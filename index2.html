@@ -1,0 +1,1831 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Map Mind</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --bg: #f5f6fa;
+            --bg-secondary: #ffffff;
+            --border: #e0e0e0;
+            --text-primary: #222;
+            --text-secondary: #888;
+            --accent: #007aff;
+            --accent-hover: #0051a8;
+            --node-bg: #fff;
+            --node-border: #e0e0e0;
+            --node-text: #222;
+            --node-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            --line: #d1d5db;
+            --dot: #e0e0e0;
+        }
+        html.dark {
+            --bg: #292929;
+            --bg-secondary: #2c2f36;
+            --border: #444;
+            --text-primary: #ffffff;
+            --text-secondary: #bbb;
+            --accent: #0a84ff;
+            --accent-hover: #0051a8;
+            --node-bg: #000000;
+            --node-border: #444;
+            --node-text: #ffffff;
+            --node-shadow: 0 4px 16px rgba(0,0,0,0.18);
+            --line: #444;
+            --dot: #444;
+        }
+        body {
+            background-color: var(--bg);
+            color: var(--text-primary);
+            overflow: hidden;
+        }
+        .dot-background {
+            background-image: none;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2.2rem;
+            height: 2.2rem;
+            border-radius: 0.7rem;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+            transition: background 0.2s, box-shadow 0.2s;
+        }
+        .btn-secondary {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border);
+        }
+        .btn-secondary:hover {
+            background-color: var(--border);
+        }
+        .btn-primary {
+            background-color: var(--accent);
+            color: #fff;
+            border: none;
+        }
+        .btn-primary:hover {
+            background-color: var(--accent-hover);
+        }
+        #context-menu {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+        }
+        #context-menu li {
+            border-radius: 0.4rem;
+            margin: 2px 0;
+        }
+        #context-menu li:hover {
+            background-color: var(--accent);
+            color: #fff;
+        }
+
+        .rounded-lg {
+            border-radius: 1rem !important;
+        }
+        .flex {
+            gap: 0.5rem;
+        }
+        .absolute.left-1\/2 {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+    </style>
+
+</head>
+<body class="flex flex-col h-screen">
+
+    <header class="bg-[var(--bg-secondary)]/80 backdrop-blur-xl border-b border-[var(--border)] p-2 flex justify-between items-center z-20">
+        <div class="flex items-center gap-2">
+            <img src="mapMind.webp" alt="Map Mind Logo" class="w-8 h-8">
+            <h1 class="text-2xl font-semibold tracking-tight" style="letter-spacing: -0.02em;">Map Mind</h1>
+        </div>
+        <div class="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 p-2 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-md">
+            <button id="undoBtn" class="btn btn-secondary" title="Undo (Ctrl+Z)" disabled>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 15l-3-3m0 0l3-3m-3 3h8a5 5 0 0 0 0-10H9"></path></svg>
+            </button>
+            <button id="redoBtn" class="btn btn-secondary" title="Redo (Ctrl+Y)" disabled>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 15l3-3m0 0l-3-3m3 3H8a5 5 0 0 0 0 10h3"></path></svg>
+            </button>
+            <div class="w-px h-6 bg-[var(--border)] mx-1"></div>
+            <button id="addNodeBtn" class="btn btn-primary" title="Add Node">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            </button>
+            <button id="clearBtn" class="btn btn-secondary" title="Clear All">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+            </button>
+            <div class="w-px h-6 bg-[var(--border)] mx-1"></div>
+            <button id="lockBtn" class="btn btn-secondary" title="Lock Nodes">
+                <svg id="lock-icon-unlocked" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 1 1 8 0m-4 8v2m-6 4h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2z"></path></svg>
+                <svg id="lock-icon-locked" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2zm4-12a4 4 0 1 0-8 0v4h8V7z"></path></svg>
+            </button>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <div class="flex items-center gap-1 p-1 bg-[var(--bg)] border border-[var(--border)] rounded-lg">
+                <button id="zoomOutBtn" class="btn btn-secondary" title="Zoom Out (-)">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg>
+                </button>
+                <div id="zoomIndicator" class="text-sm font-semibold w-16 text-center">100%</div>
+                <button id="zoomInBtn" class="btn btn-secondary" title="Zoom In (+)">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                </button>
+            </div>
+            <button id="fitViewBtn" class="btn btn-secondary" title="Fit to View">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4h4m12 4V4h-4M4 16v4h4m12-4v4h-4"></path></svg>
+            </button>
+            <button id="importBtn" class="btn btn-secondary" title="Import">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-1m-4-8l4 4m0 0l4-4m-4 4V4"></path></svg>
+            </button>
+            <button id="exportBtn" class="btn btn-secondary" title="Export">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+            </button>
+            <button id="cloudSaveBtn" class="btn btn-secondary" title="Save to Cloud">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+            </button>
+            <button id="cloudLoadBtn" class="btn btn-secondary" title="Load from Cloud">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 11l3 3m0 0l3-3m-3 3V4"></path></svg>
+            </button>
+            <button id="markdownToggle" class="btn btn-secondary" title="Toggle Markdown Mode">
+                <svg id="markdown-icon-off" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                <svg id="markdown-icon-on" class="w-5 h-5 hidden" fill="currentColor" viewBox="0 0 24 24"><path d="M22.269 19.385c-.13-.151-.297-.243-.485-.243h-3.039v-7.874l-2.255 2.885-.239.307-.238-.307-2.255-2.885v7.874h-3.04c-.187 0-.354.092-.485.243-.13.15-.202.35-.202.56 0 .21.072.41.202.56.131.151.298.243.485.243h3.04v1.125c0 .621.504 1.125 1.125 1.125s1.125-.504 1.125-1.125v-1.125h3.039c.187 0 .354-.092.485-.243.13-.15.202-.35.202-.56 0-.21-.072-.41-.202-.56zm-9.269-9.385h-3v7h-2l3 3 3-3h-2v-7h1z"/></svg>
+            </button>
+            <button id="themeToggle" class="btn btn-secondary" title="Toggle Theme">
+                <svg id="theme-icon-light" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0z"></path></svg>
+                <svg id="theme-icon-dark" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 0 1 8.646 3.646 9.003 9.003 0 0 0 12 21a9.003 9.003 0 0 0 8.354-5.646z"></path></svg>
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 dot-background relative">
+    <canvas id="mindMapCanvas"></canvas>
+    <textarea id="node-editor" class="absolute hidden text-left outline-none bg-[var(--node-bg)] border border-[var(--node-border)] text-[var(--node-text)] rounded-lg p-2 z-10 resize-none overflow-hidden shadow-lg" rows="1" wrap="off"></textarea>
+    </main>
+
+    <div id="context-menu" class="absolute hidden z-30 rounded-lg shadow-lg w-48">
+        <ul class="py-1">
+            <li id="menu-add-child" class="px-4 py-2 cursor-pointer">Add Child</li>
+            <li id="menu-add-node" class="px-4 py-2 cursor-pointer">Add Node</li>
+            <li id="menu-connect" class="px-4 py-2 cursor-pointer">Connect</li>
+            <li id="menu-delete-node" class="px-4 py-2 cursor-pointer">Delete Node</li>
+            <li id="menu-disconnect" class="px-4 py-2 cursor-pointer">Disconnect</li>
+        </ul>
+    </div>
+    
+    <input type="file" id="file-input" class="hidden" accept=".rxt">
+    
+    <!-- Cloud Save/Load Modal -->
+    <div id="cloudModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+        <div class="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg p-6 w-96 max-w-md mx-4">
+            <h3 id="modalTitle" class="text-lg font-semibold mb-4">Cloud Save</h3>
+            <div class="mb-4">
+                <label for="usernameInput" class="block text-sm font-medium mb-2">Username:</label>
+                <input type="text" id="usernameInput" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--bg)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" placeholder="Enter unique username">
+            </div>
+            <div class="mb-4">
+                <label for="mindmapNameInput" class="block text-sm font-medium mb-2">Mind Map Name:</label>
+                <input type="text" id="mindmapNameInput" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--bg)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" placeholder="Enter mind map name">
+            </div>
+            <div id="savedMindmaps" class="mb-4 hidden">
+                <label class="block text-sm font-medium mb-2">Saved Mind Maps:</label>
+                <div id="mindmapsList" class="max-h-48 overflow-y-auto border border-[var(--border)] rounded-lg bg-[var(--bg)] p-2">
+                    <!-- Saved mind maps will be listed here -->
+                </div>
+            </div>
+            <div class="flex gap-2 justify-end">
+                <button id="modalCancel" class="px-4 py-2 border border-[var(--border)] rounded-lg hover:bg-[var(--border)] transition-colors">Cancel</button>
+                <button id="modalConfirm" class="px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent-hover)] transition-colors">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="notification" class="fixed bottom-4 right-4 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-lg p-4 transform translate-y-20 transition-transform duration-300 z-50 max-w-md">
+        <div class="flex items-start">
+            <div id="notificationIcon" class="mr-3 mt-0.5">
+                <!-- Icon will be inserted here -->
+            </div>
+            <div>
+                <h4 id="notificationTitle" class="font-semibold"></h4>
+                <p id="notificationMessage" class="text-sm text-[var(--text-secondary)]"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
+    
+    <script>
+        // Initialize Firebase
+        const firebaseConfig = {
+            databaseURL: "https://database-8f81d-default-rtdb.firebaseio.com/"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // Firebase utility functions
+        const firebaseUtils = {
+            // Save mind map to Firebase
+            saveMindMap: async function(username, mindmapName, data) {
+                try {
+                    const timestamp = new Date().toISOString();
+                    const mindmapRef = database.ref(`mindmaps/${username}/${mindmapName}`);
+                    
+                    await mindmapRef.set({
+                        data: data,
+                        timestamp: timestamp,
+                        name: mindmapName
+                    });
+                    
+                    return { success: true, message: "Mind map saved successfully!" };
+                } catch (error) {
+                    console.error("Error saving mind map:", error);
+                    return { success: false, message: "Failed to save mind map: " + error.message };
+                }
+            },
+            
+            // Load mind map from Firebase
+            loadMindMap: async function(username, mindmapName) {
+                try {
+                    const mindmapRef = database.ref(`mindmaps/${username}/${mindmapName}`);
+                    const snapshot = await mindmapRef.once('value');
+                    
+                    if (snapshot.exists()) {
+                        const mindmapData = snapshot.val();
+                        return { 
+                            success: true, 
+                            data: mindmapData.data,
+                            message: "Mind map loaded successfully!" 
+                        };
+                    } else {
+                        return { 
+                            success: false, 
+                            message: "Mind map not found" 
+                        };
+                    }
+                } catch (error) {
+                    console.error("Error loading mind map:", error);
+                    return { success: false, message: "Failed to load mind map: " + error.message };
+                }
+            },
+            
+            // Get list of saved mind maps for a user
+            getMindMapsList: async function(username) {
+                try {
+                    const mindmapsRef = database.ref(`mindmaps/${username}`);
+                    const snapshot = await mindmapsRef.once('value');
+                    
+                    if (snapshot.exists()) {
+                        const mindmaps = snapshot.val();
+                        const mindmapsList = [];
+                        
+                        for (const key in mindmaps) {
+                            mindmapsList.push({
+                                name: key,
+                                timestamp: mindmaps[key].timestamp
+                            });
+                        }
+                        
+                        // Sort by timestamp (newest first)
+                        mindmapsList.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                        
+                        return { success: true, mindmaps: mindmapsList };
+                    } else {
+                        return { success: true, mindmaps: [] };
+                    }
+                } catch (error) {
+                    console.error("Error getting mind maps list:", error);
+                    return { success: false, message: "Failed to get mind maps list: " + error.message };
+                }
+            },
+            
+            // Delete a mind map
+            deleteMindMap: async function(username, mindmapName) {
+                try {
+                    const mindmapRef = database.ref(`mindmaps/${username}/${mindmapName}`);
+                    await mindmapRef.remove();
+                    
+                    return { success: true, message: "Mind map deleted successfully!" };
+                } catch (error) {
+                    console.error("Error deleting mind map:", error);
+                    return { success: false, message: "Failed to delete mind map: " + error.message };
+                }
+            }
+        };
+
+        // Notification system
+        function showNotification(title, message, type = 'success') {
+            const notification = document.getElementById('notification');
+            const notificationTitle = document.getElementById('notificationTitle');
+            const notificationMessage = document.getElementById('notificationMessage');
+            const notificationIcon = document.getElementById('notificationIcon');
+            
+            // Set content
+            notificationTitle.textContent = title;
+            notificationMessage.textContent = message;
+            
+            // Set icon based on type
+            if (type === 'success') {
+                notificationIcon.innerHTML = '<svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+            } else if (type === 'error') {
+                notificationIcon.innerHTML = '<svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+            } else if (type === 'info') {
+                notificationIcon.innerHTML = '<svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+            }
+            
+            // Show notification
+            notification.classList.remove('translate-y-20');
+            notification.classList.add('translate-y-0');
+            
+            // Hide after 3 seconds
+            setTimeout(() => {
+                notification.classList.remove('translate-y-0');
+                notification.classList.add('translate-y-20');
+            }, 3000);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('mindMapCanvas');
+            const ctx = canvas.getContext('2d');
+            const nodeEditor = document.getElementById('node-editor');
+            const contextMenu = document.getElementById('context-menu');
+
+            let state = {
+                nodes: [],
+                pan: { x: 0, y: 0 },
+                zoom: 1,
+                nextNodeId: 1,
+                selectedNodeId: null,
+                editingNodeId: null,
+                draggingNodeId: null,
+                dragStart: { x: 0, y: 0 },
+                isDragging: false,
+                isPanning: false,
+                history: [],
+                historyIndex: -1,
+                connecting: false,
+                markdownMode: true,
+                nodesLocked: false,
+            };
+
+            const dom = {
+                undoBtn: document.getElementById('undoBtn'),
+                redoBtn: document.getElementById('redoBtn'),
+                addNodeBtn: document.getElementById('addNodeBtn'),
+                zoomInBtn: document.getElementById('zoomInBtn'),
+                zoomOutBtn: document.getElementById('zoomOutBtn'),
+                zoomIndicator: document.getElementById('zoomIndicator'),
+                fitViewBtn: document.getElementById('fitViewBtn'),
+                importBtn: document.getElementById('importBtn'),
+                exportBtn: document.getElementById('exportBtn'),
+                cloudSaveBtn: document.getElementById('cloudSaveBtn'),
+                cloudLoadBtn: document.getElementById('cloudLoadBtn'),
+                markdownToggle: document.getElementById('markdownToggle'),
+                markdownIconOff: document.getElementById('markdown-icon-off'),
+                markdownIconOn: document.getElementById('markdown-icon-on'),
+                themeToggle: document.getElementById('themeToggle'),
+                themeIconLight: document.getElementById('theme-icon-light'),
+                themeIconDark: document.getElementById('theme-icon-dark'),
+                lockBtn: document.getElementById('lockBtn'),
+                lockIconUnlocked: document.getElementById('lock-icon-unlocked'),
+                lockIconLocked: document.getElementById('lock-icon-locked'),
+                fileInput: document.getElementById('file-input'),
+            };
+
+            const FONT_SIZE = 16;
+            const NODE_PADDING = 16;
+
+            // --- Core Functions ---
+            const resizeCanvas = () => {
+                const header = document.querySelector('header');
+                canvas.width = window.innerWidth * window.devicePixelRatio;
+                canvas.height = (window.innerHeight - header.offsetHeight) * window.devicePixelRatio;
+                canvas.style.width = `${window.innerWidth}px`;
+                canvas.style.height = `${window.innerHeight - header.offsetHeight}px`;
+                ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+                requestRedraw();
+            };
+
+            const requestRedraw = () => {
+                requestAnimationFrame(draw);
+            };
+
+            const draw = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.save();
+                ctx.translate(state.pan.x, state.pan.y);
+                ctx.scale(state.zoom, state.zoom);
+
+                drawConnections();
+                drawNodes();
+
+                if (state.connecting && state.selectedNodeId) {
+                    drawConnectionLineToCursor();
+                }
+
+                ctx.restore();
+            };
+
+            const drawNodes = () => {
+                ctx.font = `500 ${FONT_SIZE}px sans-serif`;
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+
+                for (const node of state.nodes) {
+                    updateNodeDimensions(node);
+                    
+                    ctx.fillStyle = getCssVar('--node-bg');
+                    ctx.strokeStyle = getCssVar(node.id === state.selectedNodeId ? '--accent' : '--node-border');
+                    ctx.lineWidth = 2;
+                    ctx.shadowColor = getCssVar('--node-shadow');
+                    ctx.shadowBlur = 10;
+
+                    fillRoundedRect(ctx, node.x, node.y, node.width, node.height, 8);
+                    strokeRoundedRect(ctx, node.x, node.y, node.width, node.height, 8);
+                    
+                    ctx.shadowColor = 'transparent';
+                    
+                    if (node.id !== state.editingNodeId) {
+                        ctx.fillStyle = getCssVar('--node-text');
+                        if (state.markdownMode) {
+                            renderMarkdownText(ctx, node.text, node.x + NODE_PADDING, node.y + NODE_PADDING);
+                        } else {
+                            const lines = node.text.split('\n');
+                            const lineHeight = FONT_SIZE * 1.4;
+                            const startY = node.y + node.height / 2 - ((lines.length - 1) * lineHeight) / 2;
+                            lines.forEach((line, index) => {
+                                ctx.fillText(line, node.x + NODE_PADDING, startY + index * lineHeight);
+                            });
+                        }
+                    }
+                }
+            };
+
+            const drawConnections = () => {
+                ctx.strokeStyle = getCssVar('--line');
+                ctx.lineWidth = 2.5;
+                for (const node of state.nodes) {
+                    if (node.parentId) {
+                        const parent = findNodeById(node.parentId);
+                        if (parent) {
+                            const start = { x: parent.x + parent.width / 2, y: parent.y + parent.height / 2 };
+                            const end = { x: node.x + node.width / 2, y: node.y + node.height / 2 };
+                            
+                            ctx.beginPath();
+                            ctx.moveTo(start.x, start.y);
+                            ctx.bezierCurveTo(start.x + 50, start.y, end.x - 50, end.y, end.x, end.y);
+                            ctx.stroke();
+                        }
+                    }
+                }
+            };
+
+            const drawConnectionLineToCursor = () => {
+                const startNode = findNodeById(state.selectedNodeId);
+                if (!startNode) return;
+
+                const start = { x: startNode.x + startNode.width / 2, y: startNode.y + startNode.height / 2 };
+                const end = screenToWorld(state.dragStart.x, state.dragStart.y);
+
+                ctx.strokeStyle = getCssVar('--accent');
+                ctx.lineWidth = 3;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.moveTo(start.x, start.y);
+                ctx.lineTo(end.x, end.y);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            };
+
+            // --- State & History ---
+            const saveState = () => {
+                const snapshot = JSON.stringify({ nodes: state.nodes, nextNodeId: state.nextNodeId });
+                state.historyIndex++;
+                state.history = state.history.slice(0, state.historyIndex);
+                state.history.push(snapshot);
+                updateHistoryButtons();
+                saveToLocalStorage();
+            };
+
+            const saveToLocalStorage = () => {
+                const saveData = {
+                    nodes: state.nodes,
+                    nextNodeId: state.nextNodeId,
+                    zoom: state.zoom,
+                    pan: state.pan,
+                    markdownMode: state.markdownMode
+                };
+                localStorage.setItem('mindmap-data', JSON.stringify(saveData));
+            };
+
+            const loadFromLocalStorage = () => {
+                const saved = localStorage.getItem('mindmap-data');
+                if (saved) {
+                    try {
+                        const data = JSON.parse(saved);
+                        state.nodes = data.nodes || [];
+                        state.nextNodeId = data.nextNodeId || 1;
+                        state.zoom = data.zoom || 1;
+                        state.pan = data.pan || { x: 0, y: 0 };
+                        if (data.markdownMode !== undefined) {
+                            state.markdownMode = data.markdownMode;
+                        }
+                        return true;
+                    } catch (e) {
+                        console.error('Failed to load saved data:', e);
+                    }
+                }
+                return false;
+            };
+
+            const undo = () => {
+                if (state.historyIndex > 0) {
+                    state.historyIndex--;
+                    loadState(state.history[state.historyIndex]);
+                }
+            };
+
+            const redo = () => {
+                if (state.historyIndex < state.history.length - 1) {
+                    state.historyIndex++;
+                    loadState(state.history[state.historyIndex]);
+                }
+            };
+            
+            const loadState = (snapshot) => {
+                const loaded = JSON.parse(snapshot);
+                state.nodes = loaded.nodes;
+                state.nextNodeId = loaded.nextNodeId;
+                state.selectedNodeId = null;
+                state.editingNodeId = null;
+                hideNodeEditor();
+                updateHistoryButtons();
+                requestRedraw();
+            };
+
+            const updateHistoryButtons = () => {
+                dom.undoBtn.disabled = state.historyIndex <= 0;
+                dom.redoBtn.disabled = state.historyIndex >= state.history.length - 1;
+            };
+
+            // --- Node Management ---
+            const createNode = (x, y, text = 'New Idea', parentId = null) => {
+                const newNode = {
+                    id: state.nextNodeId++,
+                    text,
+                    x, y,
+                    width: 0, height: 0,
+                    parentId,
+                };
+                updateNodeDimensions(newNode);
+                state.nodes.push(newNode);
+                return newNode;
+            };
+
+            const deleteNode = (nodeId) => {
+                const children = state.nodes.filter(n => n.parentId === nodeId).map(n => n.id);
+                children.forEach(deleteNode);
+                state.nodes = state.nodes.filter(n => n.id !== nodeId);
+            };
+
+            const updateNodeDimensions = (node) => {
+                ctx.font = `500 ${FONT_SIZE}px sans-serif`;
+                if (state.markdownMode) {
+                    const dimensions = measureMarkdownText(ctx, node.text);
+                    node.width = dimensions.width + NODE_PADDING * 2;
+                    node.height = dimensions.height + NODE_PADDING * 2;
+                } else {
+                    const lines = node.text.split('\n');
+                    const maxWidth = Math.max(...lines.map(line => ctx.measureText(line).width), 80);
+                    const lineHeight = FONT_SIZE * 1.4;
+                    node.width = maxWidth + NODE_PADDING * 1.5;
+                    node.height = lines.length * lineHeight + NODE_PADDING * 2;
+                }
+            };
+
+            const updateEditorSize = () => {
+                if (!state.editingNodeId) return;
+                const node = findNodeById(state.editingNodeId);
+                if (!node) return;
+                
+                const screenPos = worldToScreen(node.x, node.y);
+                nodeEditor.style.left = `${screenPos.x}px`;
+                nodeEditor.style.top = `${screenPos.y}px`;
+                nodeEditor.style.width = `${node.width * state.zoom}px`;
+                nodeEditor.style.height = `${node.height * state.zoom}px`;
+            };
+
+            const startEditingNode = (nodeId) => {
+                const node = findNodeById(nodeId);
+                if (!node) return;
+
+                state.editingNodeId = nodeId;
+                const screenPos = worldToScreen(node.x, node.y);
+                
+                nodeEditor.value = node.text;
+                nodeEditor.style.fontSize = `${FONT_SIZE * state.zoom}px`;
+                nodeEditor.style.padding = `${NODE_PADDING * state.zoom}px`;
+                nodeEditor.style.lineHeight = `${FONT_SIZE * 1.4 * state.zoom}px`;
+                nodeEditor.classList.remove('hidden');
+                updateEditorSize();
+                nodeEditor.focus();
+                nodeEditor.select();
+                requestRedraw();
+            };
+
+            const finishEditingNode = () => {
+                if (!state.editingNodeId) return;
+                const node = findNodeById(state.editingNodeId);
+                if (node) {
+                    node.text = nodeEditor.value;
+                    saveState();
+                }
+                hideNodeEditor();
+                requestRedraw();
+            };
+            
+            const hideNodeEditor = () => {
+                state.editingNodeId = null;
+                nodeEditor.classList.add('hidden');
+            };
+
+            // --- Event Handlers ---
+            const setupEventListeners = () => {
+                canvas.addEventListener('mousedown', onMouseDown);
+                canvas.addEventListener('mousemove', onMouseMove);
+                canvas.addEventListener('mouseup', onMouseUp);
+                canvas.addEventListener('mouseleave', onMouseUp);
+                canvas.addEventListener('wheel', onWheel);
+                canvas.addEventListener('dblclick', onDoubleClick);
+                canvas.addEventListener('contextmenu', onContextMenu);
+
+                nodeEditor.addEventListener('blur', finishEditingNode);
+                nodeEditor.addEventListener('keydown', e => {
+                    if (e.key === 'Enter') {
+                        if (e.shiftKey) {
+                            // Allow new line with Shift+Enter
+                            setTimeout(() => {
+                                autoResizeEditor();
+                            }, 0);
+                        } else {
+                            e.preventDefault();
+                            finishEditingNode();
+                        }
+                    }
+                    if (e.key === 'Escape') hideNodeEditor();
+                });
+                
+                nodeEditor.addEventListener('input', () => {
+                    // Update node size in real-time
+                    if (state.editingNodeId) {
+                        const node = findNodeById(state.editingNodeId);
+                        if (node) {
+                            node.text = nodeEditor.value;
+                            updateNodeDimensions(node);
+                            updateEditorSize();
+                            requestRedraw();
+                        }
+                    }
+                });
+
+                dom.addNodeBtn.addEventListener('click', () => {
+                    const center = screenToWorld(canvas.clientWidth / 2, canvas.clientHeight / 2);
+                    const newNode = createNode(center.x, center.y);
+                    state.selectedNodeId = newNode.id;
+                    saveState();
+                    requestRedraw();
+                    startEditingNode(newNode.id);
+                });
+                
+                document.getElementById('clearBtn').addEventListener('click', () => {
+                    state.nodes = [];
+                    state.nextNodeId = 1;
+                    state.selectedNodeId = null;
+                    state.editingNodeId = null;
+                    hideNodeEditor();
+                    saveState();
+                    requestRedraw();
+                });
+                
+                dom.zoomInBtn.addEventListener('click', () => zoom(1.2));
+                dom.zoomOutBtn.addEventListener('click', () => zoom(0.8));
+                dom.fitViewBtn.addEventListener('click', fitView);
+                dom.undoBtn.addEventListener('click', undo);
+                dom.redoBtn.addEventListener('click', redo);
+                dom.markdownToggle.addEventListener('click', toggleMarkdown);
+                dom.themeToggle.addEventListener('click', toggleTheme);
+                dom.importBtn.addEventListener('click', () => dom.fileInput.click());
+                dom.exportBtn.addEventListener('click', exportAsRXT);
+                dom.fileInput.addEventListener('change', importRXT);
+                dom.cloudSaveBtn.addEventListener('click', showCloudSaveModal);
+                dom.cloudLoadBtn.addEventListener('click', showCloudLoadModal);
+                dom.lockBtn.addEventListener('click', toggleLock);
+
+                window.addEventListener('resize', resizeCanvas);
+                window.addEventListener('keydown', onKeyDown);
+                document.addEventListener('click', () => hideContextMenu());
+                
+                // Cloud modal event listeners
+                document.getElementById('modalCancel').addEventListener('click', hideCloudModal);
+                document.getElementById('usernameInput').addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        document.getElementById('modalConfirm').click();
+                    }
+                    if (e.key === 'Escape') {
+                        hideCloudModal();
+                    }
+                });
+                document.getElementById('mindmapNameInput').addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        document.getElementById('modalConfirm').click();
+                    }
+                    if (e.key === 'Escape') {
+                        hideCloudModal();
+                    }
+                });
+            };
+
+            const onMouseDown = (e) => {
+                if (e.button === 2) return; // Disable right-click drag
+                
+                hideContextMenu();
+                finishEditingNode();
+                const pos = getMousePos(e);
+                const clickedNodeId = findNodeAt(pos.x, pos.y);
+
+                if (state.connecting) {
+                    if (clickedNodeId && clickedNodeId !== state.selectedNodeId) {
+                        const child = findNodeById(clickedNodeId);
+                        if (child) {
+                            child.parentId = state.selectedNodeId;
+                            saveState();
+                        }
+                    }
+                    state.connecting = false;
+                    requestRedraw();
+                    return;
+                }
+
+                // Check for link click before setting up drag
+                if (clickedNodeId && state.markdownMode) {
+                    const node = findNodeById(clickedNodeId);
+                    if (node) {
+                        const worldPos = screenToWorld(pos.x, pos.y);
+                        const relativeX = worldPos.x - node.x - NODE_PADDING;
+                        const relativeY = worldPos.y - node.y - NODE_PADDING;
+                        const clickedLink = findLinkAtPosition(node.text, relativeX, relativeY);
+                        if (clickedLink) {
+                            window.open(clickedLink, '_blank');
+                            return;
+                        }
+                    }
+                }
+
+                state.selectedNodeId = clickedNodeId;
+
+                if (clickedNodeId && !state.nodesLocked) {
+                    state.isDragging = true;
+                    state.draggingNodeId = clickedNodeId;
+                } else {
+                    state.isPanning = true;
+                }
+                
+                state.dragStart = { x: pos.x, y: pos.y };
+                requestRedraw();
+            };
+
+            const onMouseMove = (e) => {
+                const pos = getMousePos(e);
+                const dx = (pos.x - state.dragStart.x);
+                const dy = (pos.y - state.dragStart.y);
+
+                // Check if hovering over a link
+                const clickedNodeId = findNodeAt(pos.x, pos.y);
+                if (clickedNodeId && state.markdownMode && !state.isDragging && !state.isPanning) {
+                    const node = findNodeById(clickedNodeId);
+                    if (node) {
+                        const worldPos = screenToWorld(pos.x, pos.y);
+                        const relativeX = worldPos.x - node.x - NODE_PADDING;
+                        const relativeY = worldPos.y - node.y - NODE_PADDING;
+                        const hoveredLink = findLinkAtPosition(node.text, relativeX, relativeY);
+                        canvas.style.cursor = hoveredLink ? 'pointer' : 'default';
+                    }
+                } else {
+                    canvas.style.cursor = 'default';
+                }
+
+                if (state.connecting) {
+                    state.dragStart = { x: pos.x, y: pos.y };
+                    requestRedraw();
+                    return;
+                }
+
+                if (state.isDragging && state.draggingNodeId) {
+                    const node = findNodeById(state.draggingNodeId);
+                    if (node) {
+                        node.x += dx / state.zoom;
+                        node.y += dy / state.zoom;
+                        requestRedraw();
+                    }
+                } else if (state.isPanning) {
+                    state.pan.x += dx;
+                    state.pan.y += dy;
+                    requestRedraw();
+                }
+                state.dragStart = { x: pos.x, y: pos.y };
+            };
+
+            const onMouseUp = () => {
+                if (state.isDragging) saveState();
+                if (state.isPanning) saveToLocalStorage();
+                state.isDragging = false;
+                state.isPanning = false;
+                state.draggingNodeId = null;
+            };
+
+            const onWheel = (e) => {
+                e.preventDefault();
+                const pos = getMousePos(e);
+                const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+                zoom(zoomFactor, pos);
+            };
+
+            const onDoubleClick = (e) => {
+                const pos = getMousePos(e);
+                const clickedNodeId = findNodeAt(pos.x, pos.y);
+                if (clickedNodeId) {
+                    startEditingNode(clickedNodeId);
+                }
+            };
+
+            const onKeyDown = (e) => {
+                if (state.editingNodeId) return;
+
+                if (e.key === 'Escape' && state.connecting) {
+                    state.connecting = false;
+                    requestRedraw();
+                }
+
+                if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
+                    e.preventDefault();
+                    dom.fileInput.click();
+                }
+                if (e.key === 'Delete' || e.key === 'Backspace') {
+                    if (state.selectedNodeId) {
+                        deleteNode(state.selectedNodeId);
+                        state.selectedNodeId = null;
+                        saveState();
+                        requestRedraw();
+                    }
+                }
+                if ((e.ctrlKey || e.metaKey) && e.key === 'z') undo();
+                if ((e.ctrlKey || e.metaKey) && e.key === 'y') redo();
+            };
+
+            const onContextMenu = (e) => {
+                e.preventDefault();
+                const pos = getMousePos(e);
+                const nodeId = findNodeAt(pos.x, pos.y);
+                state.selectedNodeId = nodeId;
+                requestRedraw();
+                showContextMenu(e.clientX, e.clientY, nodeId);
+            };
+
+            // --- UI & Menus ---
+            const showContextMenu = (x, y, nodeId) => {
+                contextMenu.style.left = `${x}px`;
+                contextMenu.style.top = `${y}px`;
+                contextMenu.classList.remove('hidden');
+                
+                const menuAddNode = document.getElementById('menu-add-node');
+                const menuAddChild = document.getElementById('menu-add-child');
+                const menuConnect = document.getElementById('menu-connect');
+                const menuDeleteNode = document.getElementById('menu-delete-node');
+                const menuDisconnect = document.getElementById('menu-disconnect');
+
+                menuAddNode.style.display = 'block';
+                menuAddNode.onclick = () => {
+                    const pos = screenToWorld(x, y);
+                    const newNode = createNode(pos.x, pos.y);
+                    state.selectedNodeId = newNode.id;
+                    saveState();
+                    requestRedraw();
+                    startEditingNode(newNode.id);
+                };
+
+                if (nodeId) {
+                    menuAddChild.style.display = 'block';
+                    menuConnect.style.display = 'block';
+                    menuDeleteNode.style.display = 'block';
+                    const node = findNodeById(nodeId);
+                    menuDisconnect.style.display = node.parentId ? 'block' : 'none';
+
+                    menuAddChild.onclick = () => {
+                        const parent = findNodeById(nodeId);
+                        const child = createNode(parent.x + parent.width + 50, parent.y, 'New Child', nodeId);
+                        saveState();
+                        startEditingNode(child.id);
+                    };
+                    menuConnect.onclick = () => {
+                        state.connecting = true;
+                    };
+                    menuDeleteNode.onclick = () => {
+                        deleteNode(nodeId);
+                        state.selectedNodeId = null;
+                        saveState();
+                        requestRedraw();
+                    };
+                    menuDisconnect.onclick = () => {
+                        node.parentId = null;
+                        saveState();
+                        requestRedraw();
+                    };
+                } else {
+                    menuAddChild.style.display = 'none';
+                    menuConnect.style.display = 'none';
+                    menuDeleteNode.style.display = 'none';
+                    menuDisconnect.style.display = 'none';
+                }
+            };
+
+            const hideContextMenu = () => contextMenu.classList.add('hidden');
+
+            const importRXT = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const data = JSON.parse(event.target.result);
+                        state.nodes = data.nodes || [];
+                        state.nextNodeId = data.metadata?.nextNodeId || 1;
+                        if (data.settings) {
+                            state.zoom = data.settings.zoom || 1;
+                            state.pan = data.settings.pan || { x: 0, y: 0 };
+                            if (data.settings.theme) {
+                                const isDark = data.settings.theme === 'dark';
+                                document.documentElement.classList.toggle('dark', isDark);
+                                dom.themeIconLight.classList.toggle('hidden', isDark);
+                                dom.themeIconDark.classList.toggle('hidden', !isDark);
+                            }
+                        }
+                        state.selectedNodeId = null;
+                        dom.zoomIndicator.textContent = `${Math.round(state.zoom * 100)}%`;
+                        saveState();
+                        requestRedraw();
+                    } catch (error) {
+                        alert('Invalid file format');
+                    }
+                };
+                reader.readAsText(file);
+                e.target.value = '';
+            };
+
+            const showCloudSaveModal = () => {
+                document.getElementById('modalTitle').textContent = 'Save to Cloud';
+                document.getElementById('usernameInput').placeholder = 'Enter your username';
+                document.getElementById('mindmapNameInput').placeholder = 'Enter mind map name';
+                document.getElementById('savedMindmaps').classList.add('hidden');
+                document.getElementById('cloudModal').classList.remove('hidden');
+                document.getElementById('usernameInput').focus();
+                
+                document.getElementById('modalConfirm').onclick = () => {
+                    const username = document.getElementById('usernameInput').value.trim();
+                    const mindmapName = document.getElementById('mindmapNameInput').value.trim();
+                    
+                    if (username && mindmapName) {
+                        saveToCloud(username, mindmapName);
+                    } else {
+                        showNotification('Error', 'Please enter both username and mind map name', 'error');
+                    }
+                };
+            };
+            
+            const showCloudLoadModal = () => {
+                document.getElementById('modalTitle').textContent = 'Load from Cloud';
+                document.getElementById('usernameInput').placeholder = 'Enter your username';
+                document.getElementById('mindmapNameInput').value = '';
+                document.getElementById('mindmapNameInput').style.display = 'none';
+                document.getElementById('savedMindmaps').classList.remove('hidden');
+                document.getElementById('cloudModal').classList.remove('hidden');
+                document.getElementById('usernameInput').focus();
+                
+                // Load mind maps list when username is entered
+                const usernameInput = document.getElementById('usernameInput');
+                usernameInput.oninput = async () => {
+                    const username = usernameInput.value.trim();
+                    if (username) {
+                        const result = await firebaseUtils.getMindMapsList(username);
+                        if (result.success) {
+                            displayMindMapsList(result.mindmaps);
+                        } else {
+                            showNotification('Error', result.message, 'error');
+                        }
+                    }
+                };
+                
+                document.getElementById('modalConfirm').onclick = async () => {
+                    const username = document.getElementById('usernameInput').value.trim();
+                    const mindmapName = document.querySelector('.mindmap-item.selected')?.dataset.name;
+                    
+                    if (username && mindmapName) {
+                        loadFromCloud(username, mindmapName);
+                    } else {
+                        showNotification('Error', 'Please select a mind map to load', 'error');
+                    }
+                };
+            };
+            
+            const displayMindMapsList = (mindmaps) => {
+                const mindmapsList = document.getElementById('mindmapsList');
+                mindmapsList.innerHTML = '';
+                
+                if (mindmaps.length === 0) {
+                    mindmapsList.innerHTML = '<p class="text-sm text-[var(--text-secondary)] p-2">No saved mind maps found</p>';
+                    return;
+                }
+                
+                mindmaps.forEach(mindmap => {
+                    const item = document.createElement('div');
+                    item.className = 'mindmap-item p-2 hover:bg-[var(--border)] rounded cursor-pointer flex justify-between items-center';
+                    item.dataset.name = mindmap.name;
+                    
+                    const nameDiv = document.createElement('div');
+                    nameDiv.textContent = mindmap.name;
+                    
+                    const dateDiv = document.createElement('div');
+                    dateDiv.className = 'text-xs text-[var(--text-secondary)]';
+                    dateDiv.textContent = new Date(mindmap.timestamp).toLocaleString();
+                    
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'ml-2 text-red-500 hover:text-red-700';
+                    deleteBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>';
+                    deleteBtn.onclick = async (e) => {
+                        e.stopPropagation();
+                        const username = document.getElementById('usernameInput').value.trim();
+                        if (username && confirm(`Are you sure you want to delete "${mindmap.name}"?`)) {
+                            const result = await firebaseUtils.deleteMindMap(username, mindmap.name);
+                            if (result.success) {
+                                showNotification('Success', result.message, 'success');
+                                // Refresh the list
+                                const refreshResult = await firebaseUtils.getMindMapsList(username);
+                                if (refreshResult.success) {
+                                    displayMindMapsList(refreshResult.mindmaps);
+                                }
+                            } else {
+                                showNotification('Error', result.message, 'error');
+                            }
+                        }
+                    };
+                    
+                    item.appendChild(nameDiv);
+                    item.appendChild(dateDiv);
+                    item.appendChild(deleteBtn);
+                    
+                    item.onclick = () => {
+                        document.querySelectorAll('.mindmap-item').forEach(el => el.classList.remove('selected', 'bg-[var(--accent)]', 'text-white'));
+                        item.classList.add('selected', 'bg-[var(--accent)]', 'text-white');
+                    };
+                    
+                    mindmapsList.appendChild(item);
+                });
+            };
+            
+            const hideCloudModal = () => {
+                document.getElementById('cloudModal').classList.add('hidden');
+                document.getElementById('usernameInput').value = '';
+                document.getElementById('mindmapNameInput').value = '';
+                document.getElementById('mindmapNameInput').style.display = 'block';
+                document.getElementById('savedMindmaps').classList.add('hidden');
+            };
+            
+            const saveToCloud = async (username, mindmapName) => {
+                const exportData = {
+                    timestamp: new Date().toISOString(),
+                    settings: {
+                        zoom: state.zoom,
+                        pan: state.pan,
+                        theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+                    },
+                    nodes: state.nodes,
+                    metadata: {
+                        nextNodeId: state.nextNodeId,
+                        selectedNodeId: state.selectedNodeId,
+                        version: '1.0'
+                    }
+                };
+                
+                const result = await firebaseUtils.saveMindMap(username, mindmapName, exportData);
+                if (result.success) {
+                    showNotification('Success', result.message, 'success');
+                    hideCloudModal();
+                } else {
+                    showNotification('Error', result.message, 'error');
+                }
+            };
+            
+            const loadFromCloud = async (username, mindmapName) => {
+                const result = await firebaseUtils.loadMindMap(username, mindmapName);
+                if (result.success) {
+                    try {
+                        const data = result.data;
+                        state.nodes = data.nodes || [];
+                        state.nextNodeId = data.metadata?.nextNodeId || 1;
+                        if (data.settings) {
+                            state.zoom = data.settings.zoom || 1;
+                            state.pan = data.settings.pan || { x: 0, y: 0 };
+                            if (data.settings.theme) {
+                                const isDark = data.settings.theme === 'dark';
+                                document.documentElement.classList.toggle('dark', isDark);
+                                dom.themeIconLight.classList.toggle('hidden', isDark);
+                                dom.themeIconDark.classList.toggle('hidden', !isDark);
+                            }
+                        }
+                        state.selectedNodeId = null;
+                        dom.zoomIndicator.textContent = `${Math.round(state.zoom * 100)}%`;
+                        saveState();
+                        requestRedraw();
+                        showNotification('Success', result.message, 'success');
+                        hideCloudModal();
+                    } catch (error) {
+                        showNotification('Error', 'Failed to load data: Invalid format', 'error');
+                    }
+                } else {
+                    showNotification('Error', result.message, 'error');
+                }
+            };
+
+            const exportAsRXT = () => {
+                const now = new Date();
+                const timestamp = `${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                
+                const exportData = {
+                    timestamp: now.toISOString(),
+                    settings: {
+                        zoom: state.zoom,
+                        pan: state.pan,
+                        theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+                    },
+                    nodes: state.nodes,
+                    preview: {
+                        canvasWidth: canvas.clientWidth,
+                        canvasHeight: canvas.clientHeight,
+                        nodeCount: state.nodes.length
+                    },
+                    metadata: {
+                        nextNodeId: state.nextNodeId,
+                        selectedNodeId: state.selectedNodeId,
+                        version: '1.0'
+                    }
+                };
+                
+                const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/octet-stream' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `mindmap-${timestamp}.rxt`;
+                a.click();
+                URL.revokeObjectURL(url);
+            };
+
+            const toggleTheme = () => {
+                document.documentElement.classList.toggle('dark');
+                const isDark = document.documentElement.classList.contains('dark');
+                dom.themeIconLight.classList.toggle('hidden', isDark);
+                dom.themeIconDark.classList.toggle('hidden', !isDark);
+                localStorage.setItem('mindmap-theme', isDark ? 'dark' : 'light');
+                requestRedraw();
+            };
+
+            const toggleMarkdown = () => {
+                state.markdownMode = !state.markdownMode;
+                dom.markdownIconOff.classList.toggle('hidden', state.markdownMode);
+                dom.markdownIconOn.classList.toggle('hidden', !state.markdownMode);
+                localStorage.setItem('mindmap-markdown', state.markdownMode ? 'on' : 'off');
+                saveToLocalStorage();
+                requestRedraw();
+            };
+
+            const toggleLock = () => {
+                state.nodesLocked = !state.nodesLocked;
+                dom.lockIconUnlocked.classList.toggle('hidden', state.nodesLocked);
+                dom.lockIconLocked.classList.toggle('hidden', !state.nodesLocked);
+                dom.lockBtn.title = state.nodesLocked ? 'Unlock Nodes' : 'Lock Nodes';
+                localStorage.setItem('mindmap-locked', state.nodesLocked ? 'on' : 'off');
+            };
+
+            const imageCache = new Map();
+            
+            const loadImage = (url) => {
+                if (imageCache.has(url)) {
+                    return imageCache.get(url);
+                }
+                
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = () => requestRedraw();
+                img.src = url;
+                imageCache.set(url, img);
+                return img;
+            };
+            
+            const findLinkAtPosition = (text, x, y) => {
+                const parts = parseMarkdown(text);
+                let currentX = 0;
+                let currentY = FONT_SIZE * 0.8;
+                const lineHeight = FONT_SIZE * 1.4;
+                let currentLineHeight = lineHeight;
+                
+                ctx.font = `500 ${FONT_SIZE}px Inter`;
+                
+                for (const part of parts) {
+                    if (part.text === '\n') {
+                        currentY += currentLineHeight;
+                        currentX = 0;
+                        currentLineHeight = lineHeight;
+                        continue;
+                    }
+                    
+                    if (part.image) {
+                        const maxWidth = 150;
+                        const maxHeight = 100;
+                        currentX += maxWidth + 5;
+                        currentLineHeight = Math.max(currentLineHeight, maxHeight + 10);
+                        continue;
+                    }
+                    
+                    if (part.link) {
+                        const textWidth = ctx.measureText(part.text).width;
+                        if (x >= currentX && x <= currentX + textWidth && 
+                            y >= currentY - FONT_SIZE * 0.2 && y <= currentY + FONT_SIZE * 0.8) {
+                            return part.link;
+                        }
+                    }
+                    
+                    currentX += ctx.measureText(part.text).width;
+                }
+                
+                return null;
+            };
+
+            const renderMarkdownText = (ctx, text, x, y) => {
+                const parts = parseMarkdown(text);
+                let currentX = x;
+                let currentY = y + FONT_SIZE * 0.8;
+                const lineHeight = FONT_SIZE * 1.4;
+                let currentLineHeight = lineHeight;
+                
+                parts.forEach(part => {
+                    if (part.text === '\n') {
+                        currentY += currentLineHeight;
+                        currentX = x;
+                        currentLineHeight = lineHeight;
+                        return;
+                    }
+                    
+                    // Handle images
+                    if (part.image) {
+                        const img = loadImage(part.image);
+                        if (img.complete && img.naturalWidth > 0) {
+                            const maxWidth = 150;
+                            const maxHeight = 100;
+                            let { width, height } = img;
+                            
+                            if (width > maxWidth) {
+                                height = (height * maxWidth) / width;
+                                width = maxWidth;
+                            }
+                            if (height > maxHeight) {
+                                width = (width * maxHeight) / height;
+                                height = maxHeight;
+                            }
+                            
+                            ctx.drawImage(img, currentX, currentY, width, height);
+                            currentX += width + 5; // Add small spacing between inline images
+                            currentLineHeight = Math.max(currentLineHeight, height + 10); // Adjust line height for images
+                        }
+                        return;
+                    }
+                    
+                    ctx.save();
+                    ctx.fillStyle = getCssVar('--node-text');
+                    
+                    // Handle headings
+                    if (part.heading) {
+                        const headingSizes = [24, 20, 18, 16, 14, 12];
+                        const headingSize = headingSizes[part.heading - 1] || 12;
+                        ctx.font = `700 ${headingSize}px sans-serif`;
+                        ctx.fillStyle = getCssVar('--node-text');
+                    }
+
+                    // Handle regular formatting
+                    else {
+                        let fontWeight = '500';
+                        let fontStyle = '';
+                        
+                        if (part.bold && part.italic) {
+                            fontWeight = '700';
+                            fontStyle = 'italic ';
+                        } else if (part.bold) {
+                            fontWeight = '700';
+                        } else if (part.italic) {
+                            fontStyle = 'italic ';
+                        }
+                        
+                        ctx.font = `${fontStyle}${fontWeight} ${FONT_SIZE}px sans-serif`;
+                        
+                        if (part.code) {
+                            ctx.font = `500 ${FONT_SIZE}px monospace`;
+                            ctx.fillStyle = '#22c55e';
+                        }
+
+                        if (part.link) {
+                            ctx.fillStyle = '#0066cc';
+                            ctx.textDecoration = 'underline';
+                        }
+                        if (part.blockquote) {
+                            ctx.fillStyle = '#ec4899';
+                        }
+                        if (part.hr) {
+                            ctx.fillStyle = '#cccccc';
+                        }
+                    }
+                    
+                    ctx.fillText(part.text, currentX, currentY);
+                    
+                    // Handle strikethrough
+                    if (part.strikethrough) {
+                        const width = ctx.measureText(part.text).width;
+                        ctx.strokeStyle = '#ef4444';
+                        ctx.lineWidth = 3;
+                        ctx.beginPath();
+                        ctx.moveTo(currentX, currentY - FONT_SIZE * 0.1);
+                        ctx.lineTo(currentX + width, currentY - FONT_SIZE * 0.1);
+                        ctx.stroke();
+                    }
+                    
+                    // Reset text decoration
+                    if (part.link) {
+                        ctx.textDecoration = 'none';
+                    }
+                    
+                    currentX += ctx.measureText(part.text).width;
+                    ctx.restore();
+                });
+            };
+
+            const measureMarkdownText = (ctx, text) => {
+                const parts = parseMarkdown(text);
+                let maxWidth = 0;
+                let totalHeight = 0;
+                let currentLineWidth = 0;
+                let currentLineHeight = FONT_SIZE * 1.4;
+                const lineHeight = FONT_SIZE * 1.4;
+                
+                parts.forEach(part => {
+                    if (part.text === '\n') {
+                        maxWidth = Math.max(maxWidth, currentLineWidth);
+                        currentLineWidth = 0;
+                        totalHeight += currentLineHeight;
+                        currentLineHeight = lineHeight;
+                        return;
+                    }
+                    
+                    // Handle images
+                    if (part.image) {
+                        currentLineWidth += 155; // 150 + 5 spacing
+                        currentLineHeight = Math.max(currentLineHeight, 110); // Image height + padding
+                        return;
+                    }
+                    
+                    ctx.save();
+                    
+                    // Handle headings
+                    if (part.heading) {
+                        const headingSizes = [24, 20, 18, 16, 14, 12];
+                        const headingSize = headingSizes[part.heading - 1] || 12;
+                        ctx.font = `700 ${headingSize}px sans-serif`;
+                    }
+
+                    // Handle regular formatting
+                    else {
+                        let fontWeight = '500';
+                        let fontStyle = '';
+                        
+                        if (part.bold && part.italic) {
+                            fontWeight = '700';
+                            fontStyle = 'italic ';
+                        } else if (part.bold) {
+                            fontWeight = '700';
+                        } else if (part.italic) {
+                            fontStyle = 'italic ';
+                        }
+                        
+                        if (part.code) {
+                            ctx.font = `500 ${FONT_SIZE}px monospace`;
+                        } else {
+                            ctx.font = `${fontStyle}${fontWeight} ${FONT_SIZE}px sans-serif`;
+                        }
+                    }
+                    
+                    currentLineWidth += ctx.measureText(part.text).width;
+                    ctx.restore();
+                });
+                
+                maxWidth = Math.max(maxWidth, currentLineWidth, 80);
+                totalHeight = totalHeight + currentLineHeight;
+                
+                return { width: maxWidth, height: totalHeight };
+            };
+
+            const parseMarkdown = (text) => {
+                // First handle multi-line code blocks (but not in blockquotes)
+                let processedText = text;
+                const codeBlockRegex = /```([\s\S]*?)```/g;
+                const codeBlocks = [];
+                let match;
+                
+                while ((match = codeBlockRegex.exec(text)) !== null) {
+                    // Check if this code block is inside a blockquote
+                    const beforeMatch = text.substring(0, match.index);
+                    const lines = beforeMatch.split('\n');
+                    const lastLine = lines[lines.length - 1];
+                    
+                    // If the line starts with '>', it's in a blockquote, skip it
+                    if (lastLine.trim().startsWith('>')) {
+                        continue;
+                    }
+                    
+                    const placeholder = `__CODEBLOCK_${codeBlocks.length}__`;
+                    codeBlocks.push(match[1]);
+                    processedText = processedText.replace(match[0], placeholder);
+                }
+                
+                const lines = processedText.split('\n');
+                const parts = [];
+                
+                for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+                    let line = lines[lineIndex];
+                    
+                    // Check for code block placeholders
+                    const codeBlockMatch = line.match(/__CODEBLOCK_(\d+)__/);
+                    if (codeBlockMatch) {
+                        const blockIndex = parseInt(codeBlockMatch[1]);
+                        const codeContent = codeBlocks[blockIndex];
+                        const codeLines = codeContent.split('\n');
+                        
+                        for (let i = 0; i < codeLines.length; i++) {
+                            parts.push({ text: codeLines[i], bold: false, italic: false, code: true, strikethrough: false, blockquote: false });
+                            if (i < codeLines.length - 1) {
+                                parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                            }
+                        }
+                        
+                        if (lineIndex < lines.length - 1) parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                        continue;
+                    }
+                    
+                    // Handle headings
+                    const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
+                    if (headingMatch) {
+                        const level = headingMatch[1].length;
+                        const headingText = headingMatch[2];
+                        parts.push({ text: headingText, bold: false, italic: false, code: false, strikethrough: false, blockquote: false, heading: level });
+                        if (lineIndex < lines.length - 1) parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                        continue;
+                    }
+                    
+                    // Handle horizontal rule
+                    if (line.trim() === '---') {
+                        parts.push({ text: '───────────────', bold: false, italic: false, code: false, strikethrough: false, blockquote: false, hr: true });
+                        if (lineIndex < lines.length - 1) parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                        continue;
+                    }
+                    
+                    // Handle blockquotes
+                    const blockquoteMatch = line.match(/^(>+)\s*(.*)$/);
+                    if (blockquoteMatch) {
+                        const level = blockquoteMatch[1].length;
+                        const quoteText = blockquoteMatch[2];
+                        const indent = '  '.repeat(level - 1);
+                        parts.push({ text: indent + '▎ ' + quoteText, bold: false, italic: false, code: false, strikethrough: false, blockquote: level });
+                        if (lineIndex < lines.length - 1) parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false });
+                        continue;
+                    }
+                    
+                    // Handle unordered lists
+                    const unorderedListMatch = line.match(/^(\s*)[-*+]\s+(.+)$/);
+                    if (unorderedListMatch) {
+                        const indent = unorderedListMatch[1];
+                        const listText = unorderedListMatch[2];
+                        parts.push({ text: indent + '• ' + listText, bold: false, italic: false, code: false, strikethrough: false, blockquote: false, list: true });
+                        if (lineIndex < lines.length - 1) parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                        continue;
+                    }
+                    
+                    // Handle ordered lists
+                    const orderedListMatch = line.match(/^(\s*)(\d+)\.\s+(.+)$/);
+                    if (orderedListMatch) {
+                        const indent = orderedListMatch[1];
+                        const number = orderedListMatch[2];
+                        const listText = orderedListMatch[3];
+                        parts.push({ text: indent + number + '. ' + listText, bold: false, italic: false, code: false, strikethrough: false, blockquote: false, list: true });
+                        if (lineIndex < lines.length - 1) parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                        continue;
+                    }
+                    
+
+                    
+                    // Parse inline markdown for regular lines
+                    const inlineParts = parseInlineMarkdown(line);
+                    parts.push(...inlineParts);
+                    
+                    if (lineIndex < lines.length - 1) {
+                        parts.push({ text: '\n', bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                    }
+                }
+                
+                return parts.length ? parts : [{ text: text, bold: false, italic: false, code: false, strikethrough: false, blockquote: false }];
+            };
+            
+            const parseInlineMarkdown = (text) => {
+                const parts = [];
+                let current = '';
+                let i = 0;
+                
+                while (i < text.length) {
+                    // Handle links [text](url)
+                    const linkMatch = text.substr(i).match(/^\[([^\]]+)\]\(([^)]+)\)/);
+                    if (linkMatch) {
+                        if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                        current = '';
+                        parts.push({ text: linkMatch[1], bold: false, italic: false, code: false, strikethrough: false, blockquote: false, link: linkMatch[2] });
+                        i += linkMatch[0].length;
+                        continue;
+                    }
+                    
+                    // Handle images ![alt](url)
+                    const imageMatch = text.substr(i).match(/^!\[([^\]]*)\]\(([^)]+)\)/);
+                    if (imageMatch) {
+                        if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                        current = '';
+                        parts.push({ text: '', bold: false, italic: false, code: false, strikethrough: false, blockquote: false, image: imageMatch[2], alt: imageMatch[1] });
+                        i += imageMatch[0].length;
+                        continue;
+                    }
+                    
+                    // Handle bold and italic ***text***
+                    if (text.substr(i, 3) === '***') {
+                        let foundClosing = false;
+                        let tempCurrent = '';
+                        let j = i + 3;
+                        
+                        // Look for closing ***
+                        while (j < text.length - 2 && text.substr(j, 3) !== '***') {
+                            tempCurrent += text[j];
+                            j++;
+                        }
+                        
+                        if (j < text.length - 2 && text.substr(j, 3) === '***' && tempCurrent) {
+                            // Found proper closing ***
+                            if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                            parts.push({ text: tempCurrent, bold: true, italic: true, code: false, strikethrough: false, blockquote: false });
+                            current = '';
+                            i = j + 3;
+                        } else {
+                            // No closing *** found, treat as regular text
+                            current += text[i];
+                            i++;
+                        }
+                    }
+                    // Handle bold **text**
+                    else if (text.substr(i, 2) === '**') {
+                        let foundClosing = false;
+                        let tempCurrent = '';
+                        let j = i + 2;
+                        
+                        // Look for closing **
+                        while (j < text.length - 1 && text.substr(j, 2) !== '**') {
+                            tempCurrent += text[j];
+                            j++;
+                        }
+                        
+                        if (j < text.length - 1 && text.substr(j, 2) === '**' && tempCurrent) {
+                            // Found proper closing **
+                            if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                            parts.push({ text: tempCurrent, bold: true, italic: false, code: false, strikethrough: false, blockquote: false });
+                            current = '';
+                            i = j + 2;
+                        } else {
+                            // No closing ** found, treat as regular text
+                            current += text[i];
+                            i++;
+                        }
+                    }
+                    // Handle italic *text* or _text_
+                    else if ((text[i] === '*' || text[i] === '_') && text[i-1] !== text[i] && text[i+1] !== text[i]) {
+                        const marker = text[i];
+                        let foundClosing = false;
+                        let tempCurrent = '';
+                        let j = i + 1;
+                        
+                        // Look for closing marker
+                        while (j < text.length && text[j] !== marker) {
+                            tempCurrent += text[j];
+                            j++;
+                        }
+                        
+                        if (j < text.length && text[j] === marker && tempCurrent) {
+                            // Found proper closing marker
+                            if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                            parts.push({ text: tempCurrent, bold: false, italic: true, code: false, strikethrough: false, blockquote: false });
+                            current = '';
+                            i = j + 1;
+                        } else {
+                            // No closing marker found, treat as regular text
+                            current += text[i];
+                            i++;
+                        }
+                    }
+                    // Handle triple backtick inline code ```text```
+                    else if (text.substr(i, 3) === '```') {
+                        let tempCurrent = '';
+                        let j = i + 3;
+                        
+                        // Look for closing ```
+                        while (j < text.length - 2 && text.substr(j, 3) !== '```') {
+                            tempCurrent += text[j];
+                            j++;
+                        }
+                        
+                        if (j < text.length - 2 && text.substr(j, 3) === '```' && tempCurrent) {
+                            // Found proper closing ```
+                            if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                            parts.push({ text: tempCurrent, bold: false, italic: false, code: true, strikethrough: false, blockquote: false });
+                            current = '';
+                            i = j + 3;
+                        } else {
+                            // No closing ``` found, treat as regular text
+                            current += text[i];
+                            i++;
+                        }
+                    }
+
+                    // Handle strikethrough ~~text~~
+                    else if (text.substr(i, 2) === '~~') {
+                        let foundClosing = false;
+                        let tempCurrent = '';
+                        let j = i + 2;
+                        
+                        // Look for closing ~~
+                        while (j < text.length - 1 && text.substr(j, 2) !== '~~') {
+                            tempCurrent += text[j];
+                            j++;
+                        }
+                        
+                        if (j < text.length - 1 && text.substr(j, 2) === '~~' && tempCurrent) {
+                            // Found proper closing ~~
+                            if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                            parts.push({ text: tempCurrent, bold: false, italic: false, code: false, strikethrough: true, blockquote: false });
+                            current = '';
+                            i = j + 2;
+                        } else {
+                            // No closing ~~ found, treat as regular text
+                            current += text[i];
+                            i++;
+                        }
+                    } else {
+                        current += text[i];
+                        i++;
+                    }
+                }
+                
+                if (current) parts.push({ text: current, bold: false, italic: false, code: false, strikethrough: false, blockquote: false });
+                return parts.length ? parts : [{ text: text, bold: false, italic: false, code: false, strikethrough: false, blockquote: false }];
+            };
+
+            // --- Actions ---
+            const zoom = (factor, pivot = { x: canvas.clientWidth / 2, y: canvas.clientHeight / 2 }) => {
+                const newZoom = Math.max(0.1, Math.min(15, state.zoom * factor));
+                const worldPos = screenToWorld(pivot.x, pivot.y);
+                
+                state.pan.x = pivot.x - worldPos.x * newZoom;
+                state.pan.y = pivot.y - worldPos.y * newZoom;
+                state.zoom = newZoom;
+                
+                dom.zoomIndicator.textContent = `${Math.round(state.zoom * 100)}%`;
+                saveToLocalStorage();
+                requestRedraw();
+            };
+
+            const fitView = () => {
+                if (state.nodes.length === 0) return;
+
+                let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                state.nodes.forEach(n => {
+                    minX = Math.min(minX, n.x);
+                    minY = Math.min(minY, n.y);
+                    maxX = Math.max(maxX, n.x + n.width);
+                    maxY = Math.max(maxY, n.y + n.height);
+                });
+
+                const padding = 50;
+                const contentWidth = maxX - minX;
+                const contentHeight = maxY - minY;
+                
+                const scaleX = (canvas.clientWidth - padding * 2) / contentWidth;
+                const scaleY = (canvas.clientHeight - padding * 2) / contentHeight;
+                state.zoom = Math.min(scaleX, scaleY, 1);
+
+                const centerX = minX + contentWidth / 2;
+                const centerY = minY + contentHeight / 2;
+
+                state.pan.x = canvas.clientWidth / 2 - centerX * state.zoom;
+                state.pan.y = canvas.clientHeight / 2 - centerY * state.zoom;
+                
+                dom.zoomIndicator.textContent = `${Math.round(state.zoom * 100)}%`;
+                saveToLocalStorage();
+                requestRedraw();
+            };
+
+            // --- Helpers ---
+            const getMousePos = (e) => ({ x: e.clientX, y: e.clientY - dom.addNodeBtn.closest('header').offsetHeight });
+            const screenToWorld = (x, y) => ({ x: (x - state.pan.x) / state.zoom, y: (y - state.pan.y) / state.zoom });
+            const worldToScreen = (x, y) => ({ x: x * state.zoom + state.pan.x, y: y * state.zoom + state.pan.y });
+            const findNodeById = (id) => state.nodes.find(n => n.id === id);
+            const findNodeAt = (x, y) => {
+                const worldPos = screenToWorld(x, y);
+                return state.nodes.slice().reverse().find(n => 
+                    worldPos.x >= n.x && worldPos.x <= n.x + n.width &&
+                    worldPos.y >= n.y && worldPos.y <= n.y + n.height
+                )?.id || null;
+            };
+            const getCssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+            
+            const fillRoundedRect = (c, x, y, w, h, r) => {
+                c.beginPath(); c.moveTo(x+r, y); c.arcTo(x+w, y, x+w, y+h, r); c.arcTo(x+w, y+h, x, y+h, r); c.arcTo(x, y+h, x, y, r); c.arcTo(x, y, x+w, y, r); c.closePath(); c.fill();
+            };
+            const strokeRoundedRect = (c, x, y, w, h, r) => {
+                c.beginPath(); c.moveTo(x+r, y); c.arcTo(x+w, y, x+w, y+h, r); c.arcTo(x+w, y+h, x, y+h, r); c.arcTo(x, y+h, x, y, r); c.arcTo(x, y, x+w, y, r); c.closePath(); c.stroke();
+            };
+
+            // --- Initialization ---
+            const init = () => {
+                const savedTheme = localStorage.getItem('mindmap-theme');
+                if (savedTheme === 'light') {
+                    document.documentElement.classList.remove('dark');
+                }
+                toggleTheme(); // Set icons correctly
+                toggleTheme();
+
+                const savedMarkdown = localStorage.getItem('mindmap-markdown');
+                if (savedMarkdown === 'off') {
+                    state.markdownMode = false;
+                } else {
+                    state.markdownMode = true;
+                }
+                dom.markdownIconOff.classList.toggle('hidden', state.markdownMode);
+                dom.markdownIconOn.classList.toggle('hidden', !state.markdownMode);
+
+                const savedLocked = localStorage.getItem('mindmap-locked');
+                if (savedLocked === 'on') {
+                    state.nodesLocked = true;
+                } else {
+                    state.nodesLocked = false;
+                }
+                dom.lockIconUnlocked.classList.toggle('hidden', state.nodesLocked);
+                dom.lockIconLocked.classList.toggle('hidden', !state.nodesLocked);
+                dom.lockBtn.title = state.nodesLocked ? 'Unlock Nodes' : 'Lock Nodes';
+
+                setupEventListeners();
+                resizeCanvas();
+                
+                // Load saved data or create welcome map
+                const hasLoadedData = loadFromLocalStorage();
+                if (!hasLoadedData) {
+                    const cX = canvas.clientWidth / 2;
+                    const cY = canvas.clientHeight / 2;
+                    createNode(screenToWorld(cX, cY).x - 50, screenToWorld(cX, cY).y - 25, 'Welcome!');
+                }
+                
+                // Update UI to reflect loaded state
+                dom.zoomIndicator.textContent = `${Math.round(state.zoom * 100)}%`;
+                dom.markdownIconOff.classList.toggle('hidden', state.markdownMode);
+                dom.markdownIconOn.classList.toggle('hidden', !state.markdownMode);
+                
+                saveState();
+                if (!hasLoadedData) {
+                    fitView();
+                }
+                requestRedraw();
+            };
+
+            init();
+        });
+    </script>
+</body>
+</html>
