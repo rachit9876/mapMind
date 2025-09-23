@@ -1,1 +1,1 @@
-### It varient uses Google Sheet as Server
+### Cloud is supported via `Google Sheets`
